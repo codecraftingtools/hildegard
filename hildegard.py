@@ -56,6 +56,25 @@ class Component_Qt_View(QGraphicsItemGroup):
         #                     title_br.width() + 20, title_br.height() + 20)
         
         self.setFlag(self.ItemIsMovable)
+
+class MyView(QGraphicsView):
+    def __init__(self, parent):
+        super(MyView, self).__init__(parent)
+        #self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        #self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        #self.setDragMode(QGraphicsView.ScrollHandDrag)
+        #self.setDragMode(QGraphicsView.NoDrag)
+        
+    def wheelEvent(self, event):
+        if event.angleDelta().y() > 0:
+            factor = 1.1
+            self.scale(factor, factor)
+        else:
+            factor = 0.97
+            self.scale(factor, factor)
         
 class Hierarchic_Component_Editor(QWidget):
 
@@ -73,11 +92,10 @@ class Hierarchic_Component_Editor(QWidget):
         scene = QGraphicsScene()
         self.scene = scene
         
-        view = QGraphicsView(self)
+        view = MyView(self)
         self.view = view
         view.setScene(scene)
         view.setMinimumSize(350, 350)
-        #view.setDragMode(QGraphicsView.ScrollHandDrag)
         view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(view)
 
