@@ -1,29 +1,13 @@
-#!/usr/bin/python3
+# Copyright (c) 2020 Jeffrey A. Webb
 
-import sys
-from collections import OrderedDict
+from . import qt_util
+import pidgen
 
 from qtpy.QtCore import *
-from qtpy.QtWidgets import *
 from qtpy.QtGui import *
-from qtpy.QtSvg import *
+from qtpy.QtWidgets import *
 
-class Component:
-    def __init__(self):
-        self.ports = OrderedDict()
-
-class Connection:
-    def __init__(self, from_port, to_port):
-        self.from_port = from_port
-        self.to_port = to_port
-        
-class Hierarchic_Component(Component):
-    def __init__(self):
-        Component.__init__(self)
-        self.subcomponents = OrderedDict()
-        self.connections = []
-
-class Component_Qt_View(QGraphicsItemGroup):
+class Component_UI(QGraphicsItemGroup):
     def __init__(self, component_name, component):
         QGraphicsItemGroup.__init__(self)
 
@@ -56,28 +40,8 @@ class Component_Qt_View(QGraphicsItemGroup):
         #                     title_br.width() + 20, title_br.height() + 20)
         
         self.setFlag(self.ItemIsMovable)
-
-class MyView(QGraphicsView):
-    def __init__(self, parent):
-        super(MyView, self).__init__(parent)
-        #self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        #self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        #self.setDragMode(QGraphicsView.ScrollHandDrag)
-        #self.setDragMode(QGraphicsView.NoDrag)
-        
-    def wheelEvent(self, event):
-        if event.angleDelta().y() > 0:
-            factor = 1.1
-            self.scale(factor, factor)
-        else:
-            factor = 0.97
-            self.scale(factor, factor)
         
 class Hierarchic_Component_Editor(QWidget):
-
     def __init__(self, top_component):
         QWidget.__init__(self)
 
@@ -92,7 +56,7 @@ class Hierarchic_Component_Editor(QWidget):
         scene = QGraphicsScene()
         self.scene = scene
         
-        view = MyView(self)
+        view = qt_util.Scene_View(self)
         self.view = view
         view.setScene(scene)
         view.setMinimumSize(350, 350)
@@ -104,28 +68,23 @@ class Hierarchic_Component_Editor(QWidget):
         layout.addWidget(quit_button, False, Qt.AlignHCenter)
 
         for c_name, c in self.top_component.subcomponents.items():
-            scene.addItem(Component_Qt_View(c_name, c))
+            scene.addItem(Component_UI(c_name, c))
         
         self.resize(800, 600)
+
+class Application:
+    _editors = {
+        pidgen.Hierarchic_Component: Hierarchic_Component_Editor,
+    }
+    
+    def __init__(self):
+        self._app = QApplication([])
+        self._widgets = []
         
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    def execute(self):
+        return self._app.exec_()
 
-    c = Hierarchic_Component()
-    c.subcomponents["C1"] = Component()
-    
-    e = Hierarchic_Component_Editor(c)
-    e.show()
-
-    svgGen = QSvgGenerator()
-    svgGen.setFileName( "out.svg" )
-    svgGen.setSize(QSize(e.scene.width(), e.scene.height()))
-    svgGen.setViewBox(QRect(0, 0, e.scene.width(), e.scene.height()))
-    svgGen.setTitle("Hierarchic Component Drawing")
-    svgGen.setDescription("A Hierarchic Component Drawing created by gsd.")
-    painter = QPainter()
-    painter.begin(svgGen)
-    e.scene.render(painter)
-    painter.end()
-    
-    sys.exit(app.exec_())
+    def edit(self, item):
+        e = self._editors[type(item)](item)
+        e.show()
+        self._widgets.append(e)
