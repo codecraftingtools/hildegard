@@ -42,7 +42,7 @@ class Component_UI(QGraphicsItemGroup):
         self.setFlag(self.ItemIsMovable)
         
 class Hierarchic_Component_Editor(QWidget):
-    def __init__(self, top_component):
+    def __init__(self, top_component, app):
         QWidget.__init__(self)
 
         self.top_component = top_component
@@ -64,7 +64,7 @@ class Hierarchic_Component_Editor(QWidget):
         layout.addWidget(view)
 
         quit_button = QPushButton('Close')
-        quit_button.clicked.connect(qApp.quit)
+        quit_button.clicked.connect(lambda: app.close_editor(self))
         layout.addWidget(quit_button, False, Qt.AlignHCenter)
 
         for c_name, c in self.top_component.subcomponents.items():
@@ -72,6 +72,39 @@ class Hierarchic_Component_Editor(QWidget):
         
         self.resize(800, 600)
 
+class Main_Window(QMainWindow):
+    def __init__(self, app):
+        QMainWindow.__init__(self)
+
+        self._app = app
+        
+        self.setWindowTitle('Hildegard')
+        
+        main_menu = self.menuBar()
+        file_menu = main_menu.addMenu('&File')
+
+        close_action = QAction("Close Tab", self)
+        close_action.setStatusTip('Close Active Tab')
+        close_action.triggered.connect(
+            lambda: app.close_editor(self.tabs.currentWidget()))
+        file_menu.addAction(close_action)
+
+        exit_action = QAction("E&xit Hildegard", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setStatusTip('Exit Hildegard')
+        exit_action.triggered.connect(qApp.quit)
+        file_menu.addAction(exit_action)
+
+        self.tabs = QTabWidget()
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(self._close_tab_by_index)
+        self.setCentralWidget(self.tabs)
+        
+        self.statusBar()
+
+    def _close_tab_by_index(self, index):
+        self._app.close_editor(self.tabs.widget(index))
+        
 class Application:
     _editors = {
         pidgen.Hierarchic_Component: Hierarchic_Component_Editor,
@@ -79,12 +112,33 @@ class Application:
     
     def __init__(self):
         self._app = QApplication([])
-        self._widgets = []
+        self._tab_contents = {}
+        self._main_window = Main_Window(self)
+        self._main_window.show()
         
     def execute(self):
         return self._app.exec_()
 
+    def _add_tab(self, item, name):
+        index = self._main_window.tabs.addTab(item, name)
+        self._tab_contents[index] = item
+        
+    def _remove_tab(self, item):
+        index = None
+        for index, content in self._tab_contents.items():
+            if content == item:
+                self._main_window.tabs.removeTab(index)
+                break
+        if index is not None:
+            del self._tab_contents[index]
+            
     def edit(self, item):
-        e = self._editors[type(item)](item)
+        e = self._editors[type(item)](item, self)
         e.show()
-        self._widgets.append(e)
+        self._add_tab(e, item.title)
+
+    def close_editor(self, item):
+        self._remove_tab(item)
+        item.close()
+        if not self._tab_contents:
+            qApp.quit()

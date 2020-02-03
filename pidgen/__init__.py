@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 class Component:
     def __init__(self):
+        self.title = "Component 1"
         self.ports = OrderedDict()
 
 class Connection:
