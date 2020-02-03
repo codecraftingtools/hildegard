@@ -10,5 +10,6 @@ from pathlib import Path
 # hildegard.__main__ module as a script.
 hildegard_root = Path(sys.path[0]) / Path("..")
 cmd = f'PYTHONPATH={hildegard_root}/$PYTHONPATH python3 -m hildegard'
-os.system(cmd)
-sys.exit(0)
+result = os.system(cmd)
+exit_code = result >> 8
+sys.exit(exit_code)
