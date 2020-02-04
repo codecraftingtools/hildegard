@@ -1,7 +1,8 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from qtpy.QtCore import Qt
-#from qtpy.QtSvg import QSvgGenerator
+from qtpy.QtCore import Qt, QSize, QRect
+from qtpy.QtGui import QPainter
+from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import QGraphicsView
 
 class Scene_View(QGraphicsView):
@@ -23,14 +24,21 @@ class Scene_View(QGraphicsView):
             factor = 0.97
             self.scale(factor, factor)
 
-# 
-#    svgGen = QSvgGenerator()
-#    svgGen.setFileName( "out.svg" )
-#    svgGen.setSize(QSize(e.scene.width(), e.scene.height()))
-#    svgGen.setViewBox(QRect(0, 0, e.scene.width(), e.scene.height()))
-#    svgGen.setTitle("Hierarchic Component Drawing")
-#    svgGen.setDescription("A Hierarchic Component Drawing created by gsd.")
-#    painter = QPainter()
-#    painter.begin(svgGen)
-#    e.scene.render(painter)
-#    painter.end()
+def export_scene_as_svg(scene, file_name=None):
+    if file_name is None:
+        file_name = "out.svg"
+    
+    print(f"export SVG to file: {file_name}")
+    
+    svg_gen = QSvgGenerator()
+    svg_gen.setFileName(file_name)
+    svg_gen.setSize(QSize(scene.width(), scene.height()))
+    svg_gen.setViewBox(QRect(0, 0, scene.width(), scene.height()))
+    svg_gen.setTitle("Hierarchic Component Drawing")
+    svg_gen.setDescription("A Hierarchic Component Drawing created by "
+                          "Hildegard.")
+    
+    painter = QPainter()
+    painter.begin(svg_gen)
+    scene.render(painter)
+    painter.end()

@@ -63,9 +63,9 @@ class Hierarchic_Component_Editor(QWidget):
         view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(view)
 
-        quit_button = QPushButton('Close')
-        quit_button.clicked.connect(lambda: app.close_editor(self))
-        layout.addWidget(quit_button, False, Qt.AlignHCenter)
+        #quit_button = QPushButton('Close')
+        #quit_button.clicked.connect(lambda: app.close_editor(self))
+        #layout.addWidget(quit_button, False, Qt.AlignHCenter)
 
         for c_name, c in self.top_component.subcomponents.items():
             scene.addItem(Component_UI(c_name, c))
@@ -82,12 +82,17 @@ class Main_Window(QMainWindow):
         
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu('&File')
+        export_menu = main_menu.addMenu('&Export')
 
+        toolbar = self.addToolBar('Top')
+        #toolbar.hide()
+        
         close_action = QAction("Close Tab", self)
-        close_action.setStatusTip('Close Active Tab')
+        close_action.setStatusTip('Close active tab')
         close_action.triggered.connect(
             lambda: app.close_editor(self.tabs.currentWidget()))
         file_menu.addAction(close_action)
+        toolbar.addAction(close_action)
 
         exit_action = QAction("E&xit Hildegard", self)
         exit_action.setShortcut("Ctrl+Q")
@@ -97,12 +102,19 @@ class Main_Window(QMainWindow):
 
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self._close_tab_by_index)
+        self.tabs.tabCloseRequested.connect(self._close_tab_with_index)
         self.setCentralWidget(self.tabs)
         
+        export_svg_action = QAction("Export as SVG", self)
+        export_svg_action.setStatusTip('Export current tab as an SVG file')
+        export_svg_action.triggered.connect(
+            lambda: app.export_as_svg(self.tabs.currentWidget()))
+        export_menu.addAction(export_svg_action)
+        toolbar.addAction(export_svg_action)
+
         self.statusBar()
 
-    def _close_tab_by_index(self, index):
+    def _close_tab_with_index(self, index):
         self._app.close_editor(self.tabs.widget(index))
         
 class Application:
@@ -142,3 +154,8 @@ class Application:
         item.close()
         if not self._tab_contents:
             qApp.quit()
+
+    def export_as_svg(self, item):
+        if hasattr(item, "scene"):
+            qt_util.export_scene_as_svg(
+                item.scene)
