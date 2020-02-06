@@ -82,6 +82,7 @@ class Main_Window(QMainWindow):
         
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu('&File')
+        view_menu = main_menu.addMenu('&View')
         export_menu = main_menu.addMenu('&Export')
 
         toolbar = self.addToolBar('Top')
@@ -100,10 +101,12 @@ class Main_Window(QMainWindow):
         exit_action.triggered.connect(qApp.quit)
         file_menu.addAction(exit_action)
 
-        self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self._close_tab_with_index)
-        self.setCentralWidget(self.tabs)
+        fit_action = QAction("Fit", self)
+        fit_action.setStatusTip('Fit in view')
+        fit_action.triggered.connect(
+            lambda: app.fit_in_view(self.tabs.currentWidget()))
+        view_menu.addAction(fit_action)
+        toolbar.addAction(fit_action)
         
         export_svg_action = QAction("Export as SVG", self)
         export_svg_action.setStatusTip('Export current tab as an SVG file')
@@ -112,6 +115,11 @@ class Main_Window(QMainWindow):
         export_menu.addAction(export_svg_action)
         toolbar.addAction(export_svg_action)
 
+        self.tabs = QTabWidget()
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(self._close_tab_with_index)
+        self.setCentralWidget(self.tabs)
+        
         self.statusBar()
 
     def _close_tab_with_index(self, index):
@@ -159,3 +167,8 @@ class Application:
         if hasattr(item, "scene"):
             qt_util.export_scene_as_svg(
                 item.scene)
+        
+    def fit_in_view(self, item):
+        if hasattr(item, "view"):
+            br = item.scene.itemsBoundingRect()
+            item.view.fitInView(br, Qt.KeepAspectRatio)
