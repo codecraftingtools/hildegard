@@ -12,190 +12,130 @@ class Scene_View(QGraphicsView):
         #self.pan_button = Qt.MiddleButton
         self.pan_button = Qt.RightButton # for testing w/ touchpad
         self.pan_modifier = Qt.ShiftModifier
-        self._panning = False
-        #self._button_panning = False
-        #self._modifier_panning = False
-        self._starting_mouse_pos = None
-        self._last_mouse_pos = None
-        self._scale = 1.0
-        self._shown = False
+        self.key_zoom_increment = 0.1
+        self.wheel_zoom_increment = 0.1
+        self.wheel_zoom_in_factor = None # Override wheel_zoom_increment
+        #self.wheel_zoom_out_factor = None # Override wheel_zoom_increment
+        self.wheel_zoom_out_factor = 0.97 # Touch pad
         
-        self.verticalScrollBar().disconnect()
-        self.horizontalScrollBar().disconnect()
+        self._panning = False
+        self._last_mouse_pos = None
+        
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)        
-        #self.setTransformationAnchor(QGraphicsView.AnchorViewCenter)
-        #self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        #self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
-        #self.setDragMode(QGraphicsView.ScrollHandDrag)
-        #self.setDragMode(QGraphicsView.NoDrag)
-        #self.setStyleSheet("border: 0px")
+        self.verticalScrollBar().disconnect()
+        self.horizontalScrollBar().disconnect()
 
-    def showEvent(self,event):
-        if not self._shown:
-            self._shown = 1
-            self._set_scene_rect()
-
-    def fitInView(self,event,aspect):
-        pos = QPoint(self.viewport().width()/2,
-                     self.viewport().height()/2)        
-        scene_pos1 = self.mapToScene(pos)
-        self._set_scene_rect()
-        scene_pos2 = self.mapToScene(pos)
-        delta = scene_pos2 - scene_pos1
-        self.translate(delta.x(), delta.y())
-        super().fitInView(event,aspect)
-
-    def resizeEvent(self,event):
+    def fit_all_in_view(self):
+        self._expand_scene_rect()
         br = self.scene().itemsBoundingRect()
         self.fitInView(br, Qt.KeepAspectRatio)
+        delta = self.mapToScene(self._get_viewport_center()) - br.center()
+        self.translate(delta.x(), delta.y())
 
-    def wheelEvent(self, event):
-        mouse_pos = event.pos()
-        if event.angleDelta().y() > 0:
-            self._zoom(1.1, mouse_pos)
-        else:
-            self._zoom(0.97, mouse_pos)
-                       
-    def calc_offset(self, x, y):
-        offset_x = x - int(self.viewport().width()/2)
-        offset_y = y - int(self.viewport().height()/2)
-        return offset_x, offset_y
+    def resizeEvent(self,event):
+        self._expand_scene_rect()
+        super().resizeEvent(event)
 
-    def mouseMoveEvent(self, event):
-        mouse_pos = event.pos()
-        
-        #if event.modifiers() == self.pan_modifier:
-        #    if not self._modifier_panning:
-        #        self._modifier_panning = True
-        #        self._starting_mouse_pos = mouse_pos
-        #else:
-        #    self._modifier_panning = False
-            
-        #if (self._button_panning or self._modifier_panning):
-        if self._panning:
-
-            #delta = mouse_pos - self._starting_mouse_pos
-            delta = mouse_pos - self._last_mouse_pos
-            
-            # Move using scroll bars
-            #v = self.verticalScrollBar()
-            #h = self.horizontalScrollBar()
-            #h.setValue(h.value() - delta.x())
-            #v.setValue(v.value() - delta.y())
-
-            # Move using translate (scroll bars must be disconnected)
-            if 1:
-                #delta = delta / self._scale
-                #self.translate(delta.x(), delta.y())
-                delta_scene = self.mapToScene(mouse_pos) - self.mapToScene(
-                    self._last_mouse_pos)
-                self.translate(delta_scene.x(), delta_scene.y())
-                
-            # Move using scroll
-            if 0:
-                offset_x, offset_y = self.calc_offset(
-                    event.pos().x(), event.pos().y())
-                #self.scroll(offset_x,offset_y)
-                f_offset_x, f_offset_y = self.calc_offset(
-                    self._starting_mouse_pos.x(), self._starting_mouse_pos.y())
-                self.scroll(offset_x - f_offset_x,
-                            offset_y - f_offset_y)
-                #print(delta.x(), delta.y(), offset_x, offset_y)
-            
-            self._last_mouse_pos = mouse_pos
-            
-        super().mouseMoveEvent(event)
-
-    def _set_scene_rect(self):
-            vp_max_old = self.mapToScene(
-                self.viewport().width(), self.viewport().height())
-            vp_min_old = self.mapToScene(0, 0)
-            vp_max = vp_max_old*2
-            vp_min = vp_min_old - vp_max_old
-            s = self.scene().sceneRect()
-            #print("start", s)
-            s_min = s.topLeft()
-            s_max = s.bottomRight()
-            new_min_x = min(vp_min.x(), s_min.x())
-            new_min_y = min(vp_min.y(), s_min.y())
-            new_max_x = max(vp_max.x(), s_max.x())
-            new_max_y = max(vp_max.y(), s_max.y())
-            #print(vp_min, vp_max, s_min, s_max)
-            new_rect = QRectF(
-                new_min_x, new_min_y, new_max_x-new_min_x, new_max_y - new_min_y)
-            #print("end", new_rect)
-            t = self.transform()
-            #print(t.dx(), t.dy())
-            #self.scene().setSceneRect(new_rect)
-            self.setSceneRect(new_rect)
-            t = self.transform()
-            #print(t.dx(), t.dy())
-            #self.setTransform(t)
-            #self.translate(new_min_x - s_min.x(), new_min_y - s_min.y())
-            t = self.transform()
-            #print(t.dx(), t.dy())
-            #self.setSceneRect(new_rect)
-        
     def mousePressEvent(self, event):
-        mouse_pos = event.pos()
         if (event.button() == self.pan_button or
-            (event.button() == Qt.LeftButton and
-             event.modifiers() == self.pan_modifier)):
-            #self._button_panning = True
+            event.button() == Qt.LeftButton and
+            event.modifiers() == self.pan_modifier):
             self._panning = True
-            self._starting_mouse_pos = mouse_pos
-            self._last_mouse_pos = mouse_pos
-
-            self._set_scene_rect()
-            
-            #print(dir(s))
-            #s1 = self.mapFromScene(s.topLeft())
-            #y = self.mapToScene(s.y())
-            #print(s.x(), s.y(), s.width(), s.height())
-            #print(" ", s1.x(), s1.y())
-            #print(dir(self.viewport()))
-            #print(" zzz ", self.viewport().x(), self.viewport().y())
-            #self.scene().setSceneRect(s)
-            
-
+            self._last_mouse_pos = event.pos()
+            self._expand_scene_rect() # Allows panning when zoomed out
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         if (event.button() == self.pan_button or
             event.button() == Qt.LeftButton):
-            #self._button_panning = False
             self._panning = False
-            
         super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        mouse_pos = event.pos()
+        if self._panning:
+            delta_scene = self.mapToScene(mouse_pos) - self.mapToScene(
+                self._last_mouse_pos)
+            self.translate(delta_scene.x(), delta_scene.y())                
+            self._last_mouse_pos = mouse_pos
+        super().mouseMoveEvent(event)
+
+    def wheelEvent(self, event):
+        if event.angleDelta().y() > 0:
+            zoom_factor = (1 + self.wheel_zoom_increment
+                           if self.wheel_zoom_in_factor is None else
+                           self.wheel_zoom_in_factor)
+        else:
+            zoom_factor = (1 - self.wheel_zoom_increment
+                           if self.wheel_zoom_out_factor is None else
+                           self.wheel_zoom_out_factor)
+        self._zoom(zoom_factor, event.pos())
 
     def keyPressEvent(self, event):
         key = event.key()
-        pos = QPoint(self.viewport().width()/2,
-                     self.viewport().height()/2)
+        pos = self._get_viewport_center()
         if key == Qt.Key_Plus or key == Qt.Key_Equal:
-            self._zoom(1.1, pos)
+            self._zoom(1 + self.key_zoom_increment, pos)
         elif key == Qt.Key_Minus:
-            self._zoom(0.9, pos)
-        else:
-            super().keyPressEvent(event)
+            self._zoom(1 - self.key_zoom_increment, pos)
+        elif key == Qt.Key_0:
+            self.fit_all_in_view()
+        super().keyPressEvent(event)
 
     def _zoom(self, factor, pos=None):
         if pos is not None:
-            scene_pos1 = self.mapToScene(pos)
+            orig_scene_pos = self.mapToScene(pos)
         self.scale(factor, factor)
-        self._scale = self._scale * factor
-        self._set_scene_rect()
+        self._expand_scene_rect()
         if pos is not None:
-            scene_pos2 = self.mapToScene(pos)
-            delta = scene_pos2 - scene_pos1
+            # Keep the reference scene point in the same position while zooming
+            new_scene_pos = self.mapToScene(pos)
+            delta = new_scene_pos - orig_scene_pos
             self.translate(delta.x(), delta.y())
         
+    def _expand_scene_rect(self):
+        vpc_pos = self._get_viewport_center()
+        orig_vpc_scene_pos = self.mapToScene(vpc_pos)
+        
+        vpr_top_left = self.mapToScene(0, 0)
+        vpr_bottom_right = self.mapToScene(
+            self.viewport().width(), self.viewport().height())
+        vpr_size = vpr_bottom_right - vpr_top_left
+        
+        # Make sure we have extra space in the scene to pan
+        vsr_top_left = vpr_top_left - vpr_size
+        vsr_bottom_right = vpr_bottom_right + vpr_size
+        
+        sr = self.scene().sceneRect()
+        sr_top_left = sr.topLeft()
+        sr_bottom_right = sr.bottomRight()
+
+        vsr_top_left_x = min(vsr_top_left.x(), sr_top_left.x())
+        vsr_top_left_y = min(vsr_top_left.y(), sr_top_left.y())
+        vsr_bottom_right_x = max(vsr_bottom_right.x(), sr_bottom_right.x())
+        vsr_bottom_right_y = max(vsr_bottom_right.y(), sr_bottom_right.y())
+            
+        vsr = QRectF(
+            vsr_top_left_x, vsr_top_left_y,
+            vsr_bottom_right_x - vsr_top_left_x,
+            vsr_bottom_right_y - vsr_top_left_y)
+        self.setSceneRect(vsr)
+
+        # Make sure expanding scene doesn't shift the view area
+        new_vpc_scene_pos = self.mapToScene(vpc_pos)
+        delta = new_vpc_scene_pos - orig_vpc_scene_pos
+        self.translate(delta.x(), delta.y())
+        
+    def _get_viewport_center(self):
+        return QPoint(self.viewport().width() // 2,
+                      self.viewport().height() // 2)
+    
 def export_scene_as_svg(scene, file_name=None):
     if file_name is None:
         file_name = "out.svg"
     
-    print(f"export SVG to file: {file_name}")
+    print(f"exporting SVG to file: {file_name}")
     
     svg_gen = QSvgGenerator()
     svg_gen.setFileName(file_name)

@@ -63,10 +63,6 @@ class Hierarchic_Component_Editor(QWidget):
         view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(view)
 
-        #quit_button = QPushButton('Close')
-        #quit_button.clicked.connect(lambda: app.close_editor(self))
-        #layout.addWidget(quit_button, False, Qt.AlignHCenter)
-
         for c_name, c in self.top_component.subcomponents.items():
             scene.addItem(Component_UI(c_name, c))
         
@@ -104,7 +100,7 @@ class Main_Window(QMainWindow):
         fit_action = QAction("Fit", self)
         fit_action.setStatusTip('Fit in view')
         fit_action.triggered.connect(
-            lambda: app.fit_in_view(self.tabs.currentWidget()))
+            lambda: self._fit_in_view(self.tabs.currentWidget()))
         view_menu.addAction(fit_action)
         toolbar.addAction(fit_action)
         
@@ -125,6 +121,10 @@ class Main_Window(QMainWindow):
     def _close_tab_with_index(self, index):
         self._app.close_editor(self.tabs.widget(index))
         
+    def _fit_in_view(self, item):
+        if hasattr(item, "view"):
+            item.view.fit_all_in_view()
+
 class Application:
     _editors = {
         pidgen.Hierarchic_Component: Hierarchic_Component_Editor,
@@ -139,14 +139,14 @@ class Application:
     def execute(self):
         return self._app.exec_()
 
-    def _add_tab(self, item, name):
-        index = self._main_window.tabs.addTab(item, name)
-        self._tab_contents[index] = item
+    def _add_tab(self, editor, name):
+        index = self._main_window.tabs.addTab(editor, name)
+        self._tab_contents[index] = editor
         
-    def _remove_tab(self, item):
+    def _remove_tab(self, editor):
         index = None
         for index, content in self._tab_contents.items():
-            if content == item:
+            if content == editor:
                 self._main_window.tabs.removeTab(index)
                 break
         if index is not None:
@@ -157,18 +157,13 @@ class Application:
         e.show()
         self._add_tab(e, item.title)
 
-    def close_editor(self, item):
-        self._remove_tab(item)
-        item.close()
+    def close_editor(self, editor):
+        self._remove_tab(editor)
+        editor.close()
         if not self._tab_contents:
             qApp.quit()
 
-    def export_as_svg(self, item):
-        if hasattr(item, "scene"):
+    def export_as_svg(self, editor):
+        if hasattr(editor, "scene"):
             qt_util.export_scene_as_svg(
-                item.scene)
-        
-    def fit_in_view(self, item):
-        if hasattr(item, "view"):
-            br = item.scene.itemsBoundingRect()
-            item.view.fitInView(br, Qt.KeepAspectRatio)
+                editor.scene)
