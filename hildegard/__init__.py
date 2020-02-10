@@ -1,169 +1,65 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from . import qt_util
+from . import qt_ui as ui
 import pidgen
 
-from qtpy.QtCore import *
-from qtpy.QtGui import *
-from qtpy.QtWidgets import *
+from qtpy.QtWidgets import QApplication
 
-class Component_UI(QGraphicsItemGroup):
-    def __init__(self, component_name, component):
-        QGraphicsItemGroup.__init__(self)
-
-        self.component_name = component_name
-        self.component = component
+class Editor_Handle:
+    def __init__(self, app=None, entity=None, editor=None, tab_index=None):
+        self.app = app
+        self.entity = entity
+        self.editor = editor
+        self.tab_index = tab_index
         
-        outline = QGraphicsRectItem(0, 0, 100, 200, parent=self)
-        self.outline = outline
-        outline_br = outline.boundingRect()
-        outline.setPos(-outline_br.width()/2.0, -outline_br.height()/2.0)
-        outline.setBrush(QBrush(Qt.gray))
-        outline.setPen(QPen(Qt.green))
-        #outline.setPen(QPen(Qt.green, 3, Qt.DashDotLine,
-        #               Qt.RoundCap, Qt.RoundJoin))
-
-        title = QGraphicsTextItem(component_name, parent=self)
-        self.title = title
-        title_br = title.boundingRect()
-        #title.setPos(-title_br.width()/2.0, -title_br.height()/2.0)
-        title.setZValue(1)
-
-        pad = 5
-        title_outline = QGraphicsRectItem(
-            title_br.x() - pad, title_br.y() - pad,
-            title_br.width() + 2*pad, title_br.height() + 2*pad,
-            parent=self)
-        title_outline.setBrush(QBrush(Qt.red))
-        #title_outline.setPos(title.x(), title.y())
-        #title_outline.update(title.x(), title.y(),
-        #                     title_br.width() + 20, title_br.height() + 20)
-        
-        self.setFlag(self.ItemIsMovable)
-        
-class Hierarchic_Component_Editor(QWidget):
-    def __init__(self, top_component, app):
-        QWidget.__init__(self)
-
-        self.top_component = top_component
-        
-        #scene.addLine(-100, -100, 100, 100)
-        #scene.addLine(0, 0, 0, 100)
-
-        self.setWindowTitle('Hierarchic Component Editor')
-        layout = QBoxLayout(QBoxLayout.TopToBottom, self)
-
-        scene = QGraphicsScene()
-        self.scene = scene
-        
-        view = qt_util.Scene_View(self)
-        self.view = view
-        view.setScene(scene)
-        view.setMinimumSize(350, 350)
-        view.setRenderHint(QPainter.Antialiasing)
-        layout.addWidget(view)
-
-        for c_name, c in self.top_component.subcomponents.items():
-            scene.addItem(Component_UI(c_name, c))
-        
-        self.resize(800, 600)
-
-class Main_Window(QMainWindow):
-    def __init__(self, app):
-        QMainWindow.__init__(self)
-
-        self._app = app
-        
-        self.setWindowTitle('Hildegard')
-        
-        main_menu = self.menuBar()
-        file_menu = main_menu.addMenu('&File')
-        view_menu = main_menu.addMenu('&View')
-        export_menu = main_menu.addMenu('&Export')
-
-        toolbar = self.addToolBar('Top')
-        #toolbar.hide()
-        
-        close_action = QAction("Close Tab", self)
-        close_action.setStatusTip('Close active tab')
-        close_action.triggered.connect(
-            lambda: app.close_editor(self.tabs.currentWidget()))
-        file_menu.addAction(close_action)
-        toolbar.addAction(close_action)
-
-        exit_action = QAction("E&xit Hildegard", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip('Exit Hildegard')
-        exit_action.triggered.connect(qApp.quit)
-        file_menu.addAction(exit_action)
-
-        fit_action = QAction("Fit", self)
-        fit_action.setStatusTip('Fit in view')
-        fit_action.triggered.connect(
-            lambda: self._fit_in_view(self.tabs.currentWidget()))
-        view_menu.addAction(fit_action)
-        toolbar.addAction(fit_action)
-        
-        export_svg_action = QAction("Export as SVG", self)
-        export_svg_action.setStatusTip('Export current tab as an SVG file')
-        export_svg_action.triggered.connect(
-            lambda: app.export_as_svg(self.tabs.currentWidget()))
-        export_menu.addAction(export_svg_action)
-        toolbar.addAction(export_svg_action)
-
-        self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self._close_tab_with_index)
-        self.setCentralWidget(self.tabs)
-        
-        self.statusBar()
-
-    def _close_tab_with_index(self, index):
-        self._app.close_editor(self.tabs.widget(index))
-        
-    def _fit_in_view(self, item):
-        if hasattr(item, "view"):
-            item.view.fit_all_in_view()
-
+    def close(self):
+        self.app.close_editor(self)
+            
 class Application:
     _editors = {
-        pidgen.Hierarchic_Component: Hierarchic_Component_Editor,
+        pidgen.Hierarchic_Component: ui.Hierarchic_Component_Editor,
     }
     
-    def __init__(self):
+    def __init__(self, show=True):
+        self._handles = []
         self._app = QApplication([])
-        self._tab_contents = {}
-        self._main_window = Main_Window(self)
-        self._main_window.show()
+        self._main_window = ui.Main_Window(self)
+        if show:
+            self._main_window.show()
         
     def execute(self):
         return self._app.exec_()
 
-    def _add_tab(self, editor, name):
-        index = self._main_window.tabs.addTab(editor, name)
-        self._tab_contents[index] = editor
+    def _add_tab(self, handle):
+        if handle.tab_index is None:
+            handle.tab_index = self._main_window.tabs.addTab(
+                handle.editor, handle.entity.title)
         
-    def _remove_tab(self, editor):
-        index = None
-        for index, content in self._tab_contents.items():
-            if content == editor:
-                self._main_window.tabs.removeTab(index)
-                break
-        if index is not None:
-            del self._tab_contents[index]
+    def _remove_tab(self, handle):
+        if handle.tab_index is not None:
+            self._main_window.tabs.removeTab(handle.tab_index)
+            handle.tab_index = None
             
-    def edit(self, item):
-        e = self._editors[type(item)](item, self)
-        e.show()
-        self._add_tab(e, item.title)
+    def edit(self, entity, show=True):
+        handle = Editor_Handle(self, entity)
+        handle.editor = self._editors[type(entity)](entity, handle)
+        self._add_tab(handle)
+        if show:
+            handle.editor.show()
+        self._handles.append(handle)
+        return handle
+    
+    def close_editor(self, handle):
+        self._remove_tab(handle)
+        if handle.editor is not None:
+            handle.editor.close()
+            del handle.editor
+        self._handles.remove(handle)
+        if not self._handles:
+            self._app.quit()
 
-    def close_editor(self, editor):
-        self._remove_tab(editor)
-        editor.close()
-        if not self._tab_contents:
-            qApp.quit()
-
-    def export_as_svg(self, editor):
-        if hasattr(editor, "scene"):
+    def export_as_svg(self, handle):
+        if (handle.editor is not None and
+            hasattr(handle.editor, "scene")):
             qt_util.export_scene_as_svg(
-                editor.scene)
+                handle.editor.scene)
