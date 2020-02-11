@@ -50,7 +50,7 @@ class Hierarchic_Component_Editor(QWidget):
         #scene.addLine(-100, -100, 100, 100)
         #scene.addLine(0, 0, 0, 100)
 
-        self.setWindowTitle('Hierarchic Component Editor')
+        self.setWindowTitle("Hierarchic Component Editor")
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
 
         scene = QGraphicsScene()
@@ -72,31 +72,31 @@ class Main_Window(QMainWindow):
     def __init__(self, app):
         super().__init__()
 
-        self.setWindowTitle('Hildegard')
+        self.setWindowTitle("Hildegard")
         
         main_menu = self.menuBar()
-        file_menu = main_menu.addMenu('&File')
-        view_menu = main_menu.addMenu('&View')
-        export_menu = main_menu.addMenu('&Export')
+        file_menu = main_menu.addMenu("&File")
+        view_menu = main_menu.addMenu("&View")
+        export_menu = main_menu.addMenu("&Export")
 
-        toolbar = self.addToolBar('Top')
+        toolbar = self.addToolBar("Top")
         #toolbar.hide()
         
         exit_action = QAction("E&xit Hildegard", self)
         exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip('Exit Hildegard')
+        exit_action.setStatusTip("Exit Hildegard")
         exit_action.triggered.connect(qApp.quit)
         file_menu.addAction(exit_action)
 
         fit_action = QAction("Fit", self)
-        fit_action.setStatusTip('Fit in view')
+        fit_action.setStatusTip("Fit in view")
         fit_action.triggered.connect(
             lambda: self._fit_in_view(self.tabs.currentWidget()))
         view_menu.addAction(fit_action)
         toolbar.addAction(fit_action)
         
         export_svg_action = QAction("Export as SVG", self)
-        export_svg_action.setStatusTip('Export current tab as an SVG file')
+        export_svg_action.setStatusTip("Export current tab as an SVG file")
         export_svg_action.triggered.connect(
             lambda: app.export_as_svg(self.tabs.currentWidget().handle))
         export_menu.addAction(export_svg_action)

@@ -1,19 +1,29 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
+from .entity import *
+
 from collections import OrderedDict
 
-class Component:
-    def __init__(self):
-        self.title = "Component 1"
-        self.ports = OrderedDict()
+class Component(Entity):
+    _attributes = (
+        Attribute("title", str, default="untitled"),
+        Attribute("ports", OrderedDict, alias="port"),
+    )    
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
 
 class Connection:
-    def __init__(self, from_port, to_port):
-        self.from_port = from_port
-        self.to_port = to_port
+    _attributes = (
+        Attribute("from_port"),
+        Attribute("to_port"),
+    )
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
         
 class Hierarchic_Component(Component):
-    def __init__(self):
-        Component.__init__(self)
-        self.subcomponents = OrderedDict()
-        self.connections = []
+    _attributes = (
+        Attribute("subcomponents", OrderedDict, alias="subcomponent"),
+        Attribute("connections", list, alias="connection"),
+    )    
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
