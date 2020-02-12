@@ -63,7 +63,7 @@ class Hierarchic_Component_Editor(QWidget):
         view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(view)
 
-        for c_name, c in self.top_component.subcomponents.items():
+        for c_name, c in self.top_component["subcomponents"].items():
             scene.addItem(Component_UI(c_name, c))
         
         self.resize(800, 600)

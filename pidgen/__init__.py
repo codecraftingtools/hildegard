@@ -4,20 +4,29 @@ from .entity import *
 
 from collections import OrderedDict
 
+class Interface(Entity):
+    _attributes = (
+        Attribute("ports", OrderedDict, element="port"),
+    )
+
+class Implementation(Entity):
+    _attributes = (
+        Attribute("interface", Interface),
+    )
+
 class Component(Entity):
     _attributes = (
-        Attribute("title", str, default="untitled"),
-        Attribute("ports", OrderedDict, alias="port"),
-    )    
+        Attribute("interface", Interface),
+    )
 
-class Connection:
+class Connection(Entity):
     _attributes = (
-        Attribute("from_port"),
-        Attribute("to_port"),
+        Attribute("source"),
+        Attribute("sink"),
     )
         
 class Hierarchic_Component(Component):
     _attributes = (
-        Attribute("subcomponents", OrderedDict, alias="subcomponent"),
-        Attribute("connections", list, alias="connection"),
-    )    
+        Attribute("subcomponents", OrderedDict, element="subcomponent"),
+        Attribute("connections", list, element="connection"),
+    )

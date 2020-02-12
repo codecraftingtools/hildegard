@@ -3,54 +3,64 @@
 import inspect
 
 class Attribute:
-    def __init__(self, name, type=None, default=None, alias=None, aliases=None):
+    def __init__(self, name, type=None, alias=None, aliases=None,
+                 element=None, element_aliases=None, **kw):
         self.name = name
         self.type = type
-        self.aliases = aliases if aliases is not None else []
+        self.aliases = list(aliases) if aliases is not None else []
         if alias is not None:
             self.aliases.append(alias)
-        self.default = default if default is not None else default
-        
-class Entity:
-    _attributes = ()
-
-    def __init__(self, *args, **keywords):
-        classes = inspect.getmro(type(self))[:-1]
-        self._attr_dict = {}
-        self._attr_aliases = {}
-        for c in reversed(classes):
-            for a in c._attributes:
-                self._attr_dict[a.name] = a
-                for alias in a.aliases:
-                    self._attr_aliases[alias] = a.name
-                if a.default is None:
-                    if type is None:
-                        setattr(self, a.name, None)
-                    else:
-                        setattr(self, a.name, a.type())
-                else:
-                    setattr(self, a.name, a.default)
-        for arg in args:
-            i = 0
-            for name in arg:
-                i = i + 1
-                value = arg[name]
-                if i > 1:
-                    raise Exception("Entity constructor args should be "
-                                    "dictionaries with only one element")
-            self._set_attr(name, value)
-
-        for name, value in keywords.items():
-            self._set_attr(name, value)
-            
-    def _set_attr(self, name, value):
-        name = self._attr_aliases.get(name, name)
-        a = self._attr_dict[name]
-        if a.type in [list]:
-            if type(value) in [list, tuple]:
-                for subitem in value:
-                    getattr(self, name).append(subitem)
+        # Note that element/element_aliases are not yet implemented
+        self.element_aliases = (
+            list(element_aliases) if element_aliases is not None else [])
+        if element is not None:
+            self.element_aliases.append(element)
+        self.default = None
+        self.use_default = False
+        for key, value in kw.items():
+            if key == "default":
+                self.use_default = True
+                self.default = value
             else:
-                getattr(self, name).append(value)
-        else:
-            setattr(self, name, value)
+                raise TypeError(
+                    f"__init__() got an unexpected keyword argument '{key}'")
+
+class Entity_Type(type):
+    def __new__(cls, *args, **kw):
+        et = super().__new__(cls, *args, **kw)
+        et._attr_info_list = list(et._attr_info_list) if hasattr(
+            et, "_attr_info_list") else list()
+        et._attr_info = dict(et._attr_info) if hasattr(
+            et, "_attr_info") else dict()
+        for a in et._attributes:
+            if a.name in et._attr_info:
+                raise Exception(f"'{a.name}' attribute already exists")
+            et._attr_info_list.append(a)
+            et._attr_info[a.name] = a
+            for alias in a.aliases:
+                et._attr_info[alias] = a
+        return et
+
+class Entity(metaclass=Entity_Type):
+    _attributes = (
+        Attribute("name", str, default="anonymous"),
+    )
+    def __init__(self, *args, **kw):
+        self._attrs = {}
+        for a in self._attr_info_list:
+            self._attrs[a.name] = (
+                a.default if a.use_default else a.type() if
+                a.type is not None else None)
+        for key, value in kw.items():
+            a = self._attr_info[key]
+            if a.type is not None:
+                value = a.type(value)
+            self._attrs[a.name] = value
+
+    def __getitem__(self, key):
+        return self._attrs[key]
+
+    def __setitem__(self, key, value):
+        if not key in self._attrs:
+            raise KeyError(key)
+        self._attrs[key] = value

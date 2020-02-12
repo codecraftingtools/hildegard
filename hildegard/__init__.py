@@ -33,7 +33,7 @@ class Application:
     def _add_tab(self, handle):
         if handle.tab_index is None:
             handle.tab_index = self._main_window.tabs.addTab(
-                handle.editor, handle.entity.title)
+                handle.editor, handle.entity["name"])
         
     def _remove_tab(self, handle):
         if handle.tab_index is not None:

@@ -14,14 +14,16 @@ def main(args=None):
     ui = hildegard.Application()
 
     c1 = pidgen.Hierarchic_Component(
-        title="Component 1",
-        subcomponents={"C1": pidgen.Component()},
+        name="Component 1",
+        subcomponents=(
+            ("SC1", pidgen.Component()),
+        )
     )
     ui.edit(c1)
     
     c2 = pidgen.Hierarchic_Component(
-        title="Component 2",
-        subcomponents={"C2": pidgen.Component()},
+        name="Component 2",
+        subcomponents={"SC2": pidgen.Component()},
     )
     ui.edit(c2)
     
