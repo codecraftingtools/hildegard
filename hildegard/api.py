@@ -1,27 +1,30 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-class Editor_Handle:
-    def __init__(self, entity=None, editor=None):
+class View:
+    def __init__(self, entity=None):
         self.entity = entity
-        self.editor = editor
+        self.widget = None
             
 class Application:
-    _editors = {}
+    _viewers = {}
     
     def __init__(self, show=True):
-        self._handles = []
-        
+        self._open_views = []
+
+    def viewing(self):
+        return True if self._open_views else False
+    
     def execute(self):
         return 0
 
     def open(self, entity, show=True):
-        handle = Editor_Handle(entity)
-        handle.editor = self._editors[type(entity)](entity, handle)
-        self._handles.append(handle)
-        return handle
+        view = View(entity)
+        view.widget = self._viewers[type(entity)](entity, view)
+        self._open_views.append(view)
+        return view
     
-    def close(self, handle):
-        self._handles.remove(handle)
+    def close(self, view):
+        self._open_views.remove(view)
 
-    def export(self, handle, format):
+    def export(self, view, format):
         pass

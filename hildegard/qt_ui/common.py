@@ -51,12 +51,12 @@ class Main_Window(QMainWindow):
         
         self.statusBar()
 
-    def _fit_in_view(self, editor):
-        if hasattr(editor, "view"):
-            editor.view.fit_all_in_view()
+    def _fit_in_view(self, widget_in_tab):
+        if hasattr(widget_in_tab, "view"):
+            widget_in_tab.view.fit_all_in_view()
 
 class Application(api.Application):
-    _editors = {
+    _viewers = {
         component.Hierarchic_Implementation:
           diagram.Hierarchic_Component_Editor,
     }
@@ -71,37 +71,37 @@ class Application(api.Application):
     def execute(self):
         return self._qapp.exec_()
 
-    def _add_tab(self, handle):
-        if (not hasattr(handle.editor, "tab_index") or
-            handle.editor.tab_index is None):
-            handle.editor.tab_index = self._main_window.tabs.addTab(
-                handle.editor, handle.entity["name"])
+    def _add_tab(self, view):
+        if (not hasattr(view.widget, "tab_index") or
+            view.widget.tab_index is None):
+            view.widget.tab_index = self._main_window.tabs.addTab(
+                view.widget, view.entity["name"])
         
-    def _remove_tab(self, handle):
-        if (hasattr(handle.editor, "tab_index") and
-            handle.editor.tab_index is not None):
-            self._main_window.tabs.removeTab(handle.editor.tab_index)
-            handle.editor.tab_index = None
+    def _remove_tab(self, view):
+        if (hasattr(view.widget, "tab_index") and
+            view.widget.tab_index is not None):
+            self._main_window.tabs.removeTab(view.widget.tab_index)
+            view.widget.tab_index = None
             
     def open(self, entity, show=True):
-        handle = super().open(entity, show=show)
-        self._add_tab(handle)
+        view = super().open(entity, show=show)
+        self._add_tab(view)
         if show:
-            handle.editor.show()
-        return handle
+            view.widget.show()
+        return view
     
-    def close(self, handle):
-        self._remove_tab(handle)
-        if handle.editor is not None:
-            handle.editor.close()
-            del handle.editor
-        super().close(handle)
-        if not self._handles:
+    def close(self, view):
+        self._remove_tab(view)
+        if view.widget is not None:
+            view.widget.close()
+            del view.widget
+        super().close(view)
+        if not self.viewing():
             self._qapp.quit()
 
-    def export(self, handle, format):
-        if (handle.editor is not None and
+    def export(self, view, format):
+        if (view.widget is not None and
             format == "svg" and
-            hasattr(handle.editor, "scene")):
+            hasattr(view.widget, "scene")):
             util.export_scene_as_svg(
-                handle.editor.scene)
+                view.widget.scene)
