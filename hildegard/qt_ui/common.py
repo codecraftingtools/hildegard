@@ -72,14 +72,16 @@ class Application(api.Application):
         return self._qapp.exec_()
 
     def _add_tab(self, handle):
-        if handle.tab_index is None:
-            handle.tab_index = self._main_window.tabs.addTab(
+        if (not hasattr(handle.editor, "tab_index") or
+            handle.editor.tab_index is None):
+            handle.editor.tab_index = self._main_window.tabs.addTab(
                 handle.editor, handle.entity["name"])
         
     def _remove_tab(self, handle):
-        if handle.tab_index is not None:
-            self._main_window.tabs.removeTab(handle.tab_index)
-            handle.tab_index = None
+        if (hasattr(handle.editor, "tab_index") and
+            handle.editor.tab_index is not None):
+            self._main_window.tabs.removeTab(handle.editor.tab_index)
+            handle.editor.tab_index = None
             
     def open(self, entity, show=True):
         handle = super().open(entity, show=show)
