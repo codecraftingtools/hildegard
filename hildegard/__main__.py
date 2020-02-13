@@ -1,33 +1,35 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-import hildegard
-import pidgen
+from hildegard import Application
+from pidgen import component
 
 import sys
 
 def main(args=None):
-    global ui # must be global for program to not hang on exit
+    global app # must be global for program to not hang on exit
 
     if args is None:
         args = sys.argv
 
-    ui = hildegard.Application()
+    app = Application()
 
-    c1 = pidgen.Hierarchic_Component(
+    c1 = component.Hierarchic_Implementation(
         name="Component 1",
         subcomponents=(
-            ("SC1", pidgen.Component()),
+            ("SC1", component.Instance()),
         )
     )
-    ui.edit(c1)
+    app.open(c1)
     
-    c2 = pidgen.Hierarchic_Component(
+    c2 = component.Hierarchic_Implementation(
         name="Component 2",
-        subcomponents={"SC2": pidgen.Component()},
+        subcomponents=(
+            ("SC2", component.Instance()),
+        )
     )
-    ui.edit(c2)
+    app.open(c2)
     
-    return ui.execute()
+    return app.execute()
 
 if __name__ == "__main__":
     sys.exit(main())

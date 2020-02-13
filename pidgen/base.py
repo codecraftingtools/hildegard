@@ -1,7 +1,5 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-import inspect
-
 class Attribute:
     def __init__(self, name, type=None, alias=None, aliases=None,
                  element=None, element_aliases=None, **kw):

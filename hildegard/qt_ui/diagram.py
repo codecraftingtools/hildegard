@@ -1,10 +1,13 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from . import qt_util
+from . import util
 
-from qtpy.QtCore import *
-from qtpy.QtGui import *
-from qtpy.QtWidgets import *
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QPainter, QBrush, QPen
+from qtpy.QtWidgets import (
+    QGraphicsItemGroup, QWidget, QBoxLayout, QGraphicsScene, QGraphicsRectItem,
+    QGraphicsTextItem
+)
 
 class Component_UI(QGraphicsItemGroup):
     def __init__(self, component_name, component):
@@ -56,7 +59,7 @@ class Hierarchic_Component_Editor(QWidget):
         scene = QGraphicsScene()
         self.scene = scene
         
-        view = qt_util.Scene_View(self)
+        view = util.Scene_View(self)
         self.view = view
         view.setScene(scene)
         view.setMinimumSize(350, 350)
@@ -67,49 +70,3 @@ class Hierarchic_Component_Editor(QWidget):
             scene.addItem(Component_UI(c_name, c))
         
         self.resize(800, 600)
-
-class Main_Window(QMainWindow):
-    def __init__(self, app):
-        super().__init__()
-
-        self.setWindowTitle("Hildegard")
-        
-        main_menu = self.menuBar()
-        file_menu = main_menu.addMenu("&File")
-        view_menu = main_menu.addMenu("&View")
-        export_menu = main_menu.addMenu("&Export")
-
-        toolbar = self.addToolBar("Top")
-        #toolbar.hide()
-        
-        exit_action = QAction("E&xit Hildegard", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip("Exit Hildegard")
-        exit_action.triggered.connect(qApp.quit)
-        file_menu.addAction(exit_action)
-
-        fit_action = QAction("Fit", self)
-        fit_action.setStatusTip("Fit in view")
-        fit_action.triggered.connect(
-            lambda: self._fit_in_view(self.tabs.currentWidget()))
-        view_menu.addAction(fit_action)
-        toolbar.addAction(fit_action)
-        
-        export_svg_action = QAction("Export as SVG", self)
-        export_svg_action.setStatusTip("Export current tab as an SVG file")
-        export_svg_action.triggered.connect(
-            lambda: app.export_as_svg(self.tabs.currentWidget().handle))
-        export_menu.addAction(export_svg_action)
-        toolbar.addAction(export_svg_action)
-
-        self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(
-            lambda index: app.close_editor(self.tabs.widget(index).handle))
-        self.setCentralWidget(self.tabs)
-        
-        self.statusBar()
-
-    def _fit_in_view(self, editor):
-        if hasattr(editor, "view"):
-            editor.view.fit_all_in_view()
