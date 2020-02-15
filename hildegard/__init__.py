@@ -1,3 +1,3 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from .qt_ui.common import Application
+from .ui.qt.common import GUI_Environment as Environment

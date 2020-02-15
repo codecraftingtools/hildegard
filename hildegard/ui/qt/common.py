@@ -1,16 +1,15 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from .. import api
 from .  import diagram, util
-
-from pidgen import component
+from ...diagram import Diagram
+from ...common import Environment
 
 from qtpy.QtWidgets import (
-    QApplication, QMainWindow, QAction, qApp, QTabWidget
+    QAction, QApplication, QMainWindow, QTabWidget, qApp
 )
 
 class Main_Window(QMainWindow):
-    def __init__(self, app):
+    def __init__(self, env):
         super().__init__()
 
         self.setWindowTitle("Hildegard")
@@ -39,43 +38,42 @@ class Main_Window(QMainWindow):
         export_svg_action = QAction("Export as SVG", self)
         export_svg_action.setStatusTip("Export current tab as an SVG file")
         export_svg_action.triggered.connect(
-            lambda: app.export(self.tabs.currentWidget().handle, format="svg"))
+            lambda: env.export(self.tabs.currentWidget().view, format="svg"))
         export_menu.addAction(export_svg_action)
         toolbar.addAction(export_svg_action)
 
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
-            lambda index: app.close(self.tabs.widget(index).handle))
+            lambda index: env.close(self.tabs.widget(index).view))
         self.setCentralWidget(self.tabs)
         
         self.statusBar()
 
     def _fit_in_view(self, widget_in_tab):
-        if hasattr(widget_in_tab, "view"):
-            widget_in_tab.view.fit_all_in_view()
+        if hasattr(widget_in_tab, "scene_view"):
+            widget_in_tab.scene_view.fit_all_in_view()
 
-class Application(api.Application):
+class GUI_Environment(Environment):
     _viewers = {
-        component.Hierarchic_Implementation:
-          diagram.Hierarchic_Component_Editor,
+        Diagram: diagram.Diagram_Editor,
     }
     
     def __init__(self, show=True):
         super().__init__(show=show)
-        self._qapp = QApplication([])
+        self._app = QApplication([])
         self._main_window = Main_Window(self)
         if show:
             self._main_window.show()
         
     def execute(self):
-        return self._qapp.exec_()
+        return self._app.exec_()
 
     def _add_tab(self, view):
         if (not hasattr(view.widget, "tab_index") or
             view.widget.tab_index is None):
             view.widget.tab_index = self._main_window.tabs.addTab(
-                view.widget, view.entity["name"])
+                view.widget, view.name)
         
     def _remove_tab(self, view):
         if (hasattr(view.widget, "tab_index") and
@@ -83,21 +81,20 @@ class Application(api.Application):
             self._main_window.tabs.removeTab(view.widget.tab_index)
             view.widget.tab_index = None
             
-    def open(self, entity, show=True):
-        view = super().open(entity, show=show)
+    def open(self, view, show=True):
+        super().open(view, show=show)
         self._add_tab(view)
         if show:
             view.widget.show()
-        return view
     
     def close(self, view):
         self._remove_tab(view)
         if view.widget is not None:
             view.widget.close()
-            del view.widget
+            view.widget = None
         super().close(view)
         if not self.viewing():
-            self._qapp.quit()
+            self._app.quit()
 
     def export(self, view, format):
         if (view.widget is not None and

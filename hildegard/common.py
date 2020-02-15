@@ -1,11 +1,13 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-class View:
-    def __init__(self, entity=None):
-        self.entity = entity
-        self.widget = None
+from wumps import Attribute, Entity
+
+class View(Entity):
+    _attributes = (
+        Attribute("widget"),
+    )
             
-class Application:
+class Environment:
     _viewers = {}
     
     def __init__(self, show=True):
@@ -17,11 +19,11 @@ class Application:
     def execute(self):
         return 0
 
-    def open(self, entity, show=True):
-        view = View(entity)
-        view.widget = self._viewers[type(entity)](entity, view)
+    def open(self, view, show=True):
+        if view.widget:
+            return
+        view.widget = self._viewers[type(view)](view)
         self._open_views.append(view)
-        return view
     
     def close(self, view):
         self._open_views.remove(view)

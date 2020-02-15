@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from .base import Entity, Attribute
+from wumps import Attribute, Entity
 
 from collections import OrderedDict
 
@@ -25,7 +25,7 @@ class Connection(Entity):
         Attribute("sink"),
     )
         
-class Hierarchic_Implementation(Implementation):
+class Hierarchy(Implementation):
     _attributes = (
         Attribute("subcomponents", OrderedDict, element="subcomponent"),
         Attribute("connections", list, element="connection"),

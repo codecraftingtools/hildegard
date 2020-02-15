@@ -51,7 +51,8 @@ class Entity(metaclass=Entity_Type):
                 a.type is not None else None)
         for key, value in kw.items():
             a = self._attr_info[key]
-            if a.type is not None:
+            if (a.type is not None and
+                not isinstance(value, Entity)): # no Entity copy constructor yet
                 value = a.type(value)
             self._attrs[a.name] = value
 
@@ -62,3 +63,12 @@ class Entity(metaclass=Entity_Type):
         if not key in self._attrs:
             raise KeyError(key)
         self._attrs[key] = value
+
+    def __getattr__(self, key):
+        return self.__getitem__(key)
+
+    def __setattr__(self, key, value):
+        if "_attrs" in self.__dict__ and key in self._attrs:
+            self.__setitem__(key, value)
+        else:
+            super().__setattr__(key, value)

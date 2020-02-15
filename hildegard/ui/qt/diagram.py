@@ -43,30 +43,29 @@ class Component_UI(QGraphicsItemGroup):
         
         self.setFlag(self.ItemIsMovable)
         
-class Hierarchic_Component_Editor(QWidget):
-    def __init__(self, top_component, handle):
+class Diagram_Editor(QWidget):
+    def __init__(self, view):
         super().__init__()
         
-        self.top_component = top_component
-        self.handle = handle
+        self.view = view
         
         #scene.addLine(-100, -100, 100, 100)
         #scene.addLine(0, 0, 0, 100)
 
-        self.setWindowTitle("Hierarchic Component Editor")
+        self.setWindowTitle("Diagram Editor")
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
 
         scene = QGraphicsScene()
         self.scene = scene
         
-        view = util.Scene_View(self)
-        self.view = view
-        view.setScene(scene)
-        view.setMinimumSize(350, 350)
-        view.setRenderHint(QPainter.Antialiasing)
-        layout.addWidget(view)
+        scene_view = util.Scene_View(self)
+        self.scene_view = scene_view
+        scene_view.setScene(scene)
+        scene_view.setMinimumSize(350, 350)
+        scene_view.setRenderHint(QPainter.Antialiasing)
+        layout.addWidget(scene_view)
 
-        for c_name, c in self.top_component["subcomponents"].items():
+        for c_name, c in self.view.hierarchy.subcomponents.items():
             scene.addItem(Component_UI(c_name, c))
         
         self.resize(800, 600)
