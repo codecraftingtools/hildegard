@@ -3,7 +3,27 @@
 from qtpy.QtCore import Qt, QSize, QRect, QRectF, QPoint
 from qtpy.QtGui import QPainter
 from qtpy.QtSvg import QSvgGenerator
-from qtpy.QtWidgets import QGraphicsView
+from qtpy.QtWidgets import QBoxLayout, QGraphicsScene, QGraphicsView, QWidget
+
+class Scene_Window(QWidget):
+    def __init__(self, ui):
+        super().__init__()
+        
+        layout = QBoxLayout(QBoxLayout.TopToBottom, self)
+
+        scene = QGraphicsScene()
+        self.scene = scene
+        
+        scene_view = Scene_View(self)
+        self.scene_view = scene_view
+        scene_view.setScene(scene)
+        scene_view.setMinimumSize(350, 350)
+        scene_view.setRenderHint(QPainter.Antialiasing)
+        layout.addWidget(scene_view)
+
+        scene.addItem(ui)
+            
+        self.resize(800, 600)
 
 class Scene_View(QGraphicsView):
     def __init__(self, parent):

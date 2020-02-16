@@ -1,11 +1,11 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
 from .  import diagram, util
-from ...diagram import Diagram
+from ...diagram import Block, Diagram
 from ...common import Environment
 
 from qtpy.QtWidgets import (
-    QAction, QApplication, QMainWindow, QTabWidget, qApp
+    QAction, QApplication, QGraphicsItem, QMainWindow, QTabWidget, qApp
 )
 
 class Main_Window(QMainWindow):
@@ -57,6 +57,7 @@ class Main_Window(QMainWindow):
 class GUI_Environment(Environment):
     _viewers = {
         Diagram: diagram.Diagram_Editor,
+        Block: diagram.Block_Item,
     }
     
     def __init__(self, show=True):
@@ -70,28 +71,29 @@ class GUI_Environment(Environment):
         return self._app.exec_()
 
     def _add_tab(self, view):
-        if (not hasattr(view.widget, "tab_index") or
-            view.widget.tab_index is None):
-            view.widget.tab_index = self._main_window.tabs.addTab(
-                view.widget, view.name)
+        self._main_window.tabs.addTab(view.widget, view.name)
         
     def _remove_tab(self, view):
-        if (hasattr(view.widget, "tab_index") and
-            view.widget.tab_index is not None):
-            self._main_window.tabs.removeTab(view.widget.tab_index)
-            view.widget.tab_index = None
-            
+        self._main_window.tabs.removeTab(
+            self._main_window.tabs.indexOf(view.widget))
+        
     def open(self, view, show=True):
-        super().open(view, show=show)
+        added = super().open(view, show=show)
+        if not added:
+            return False
+        if isinstance(view.widget, QGraphicsItem):
+            view.widget = util.Scene_Window(view.widget)
+            view.widget.view = view
         self._add_tab(view)
         if show:
             view.widget.show()
+        return True
     
     def close(self, view):
+        if not self.viewing(view):
+            return
         self._remove_tab(view)
-        if view.widget is not None:
-            view.widget.close()
-            view.widget = None
+        view.widget.close()
         super().close(view)
         if not self.viewing():
             self._app.quit()

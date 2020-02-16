@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from hildegard.diagram import Diagram
+from hildegard.diagram import Block, Diagram
 from hildegard import Environment
 from pidgen import component
 
@@ -19,16 +19,22 @@ def main(args=None):
             name="Component 1",
             subcomponents=(
                 ("SC1", component.Instance()),
+                ("SC2", component.Instance()),
             )
         )
     )
     env.open(d1)
+
+    b1 = Block(
+        instance = component.Instance(name="SC3"),
+    )
+    env.open(b1)
     
     d2 = Diagram(
         hierarchy = component.Hierarchy(
             name="Component 2",
             subcomponents=(
-                ("SC2", component.Instance()),
+                ("SC4", component.Instance()),
             )
         )
     )

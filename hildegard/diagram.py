@@ -10,5 +10,14 @@ class Diagram(View):
     )
     def __init__(self, *args, **kw):
         super().__init__(self, *args, **kw)
-        if self.name == "anonymous":
+        if not self.name:
             self.name = self.hierarchy.name
+
+class Block(View):
+    _attributes = (
+        Attribute("instance", component.Instance),
+    )
+    def __init__(self, *args, **kw):
+        super().__init__(self, *args, **kw)
+        if not self.name:
+            self.name = self.instance.name

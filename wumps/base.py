@@ -41,7 +41,7 @@ class Entity_Type(type):
 
 class Entity(metaclass=Entity_Type):
     _attributes = (
-        Attribute("name", str, default="anonymous"),
+        Attribute("name", str, default=""),
     )
     def __init__(self, *args, **kw):
         self._attrs = {}

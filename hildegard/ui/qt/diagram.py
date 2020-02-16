@@ -1,20 +1,19 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
 from . import util
+from ... diagram import Block
 
-from qtpy.QtCore import Qt
-from qtpy.QtGui import QPainter, QBrush, QPen
+from qtpy.QtCore import Qt, QRectF
+from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import (
-    QGraphicsItemGroup, QWidget, QBoxLayout, QGraphicsScene, QGraphicsRectItem,
-    QGraphicsTextItem
+    QGraphicsItemGroup, QGraphicsRectItem, QGraphicsTextItem, QGraphicsItem
 )
 
-class Component_UI(QGraphicsItemGroup):
-    def __init__(self, component_name, component):
+class Block_Item(QGraphicsItemGroup):
+    def __init__(self, block):
         super().__init__()
 
-        self.component_name = component_name
-        self.component = component
+        self.block = block
         
         outline = QGraphicsRectItem(0, 0, 100, 200, parent=self)
         self.outline = outline
@@ -25,7 +24,7 @@ class Component_UI(QGraphicsItemGroup):
         #outline.setPen(QPen(Qt.green, 3, Qt.DashDotLine,
         #               Qt.RoundCap, Qt.RoundJoin))
 
-        title = QGraphicsTextItem(component_name, parent=self)
+        title = QGraphicsTextItem(self.block.name, parent=self)
         self.title = title
         title_br = title.boundingRect()
         #title.setPos(-title_br.width()/2.0, -title_br.height()/2.0)
@@ -43,29 +42,26 @@ class Component_UI(QGraphicsItemGroup):
         
         self.setFlag(self.ItemIsMovable)
         
-class Diagram_Editor(QWidget):
+class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
         
         self.view = view
         
-        #scene.addLine(-100, -100, 100, 100)
-        #scene.addLine(0, 0, 0, 100)
-
-        self.setWindowTitle("Diagram Editor")
-        layout = QBoxLayout(QBoxLayout.TopToBottom, self)
-
-        scene = QGraphicsScene()
-        self.scene = scene
-        
-        scene_view = util.Scene_View(self)
-        self.scene_view = scene_view
-        scene_view.setScene(scene)
-        scene_view.setMinimumSize(350, 350)
-        scene_view.setRenderHint(QPainter.Antialiasing)
-        layout.addWidget(scene_view)
-
-        for c_name, c in self.view.hierarchy.subcomponents.items():
-            scene.addItem(Component_UI(c_name, c))
-        
-        self.resize(800, 600)
+        for i, (c_name, c) in enumerate(
+                self.view.hierarchy.subcomponents.items()):
+            c_ui = Block_Item(Block(instance=c))
+            c_ui.moveBy(200*i,0)
+            c_ui.setParentItem(self)
+            
+    def paint(self, *args, **kw):
+        pass
+    
+    def boundingRect(self, *args, **kw):
+        return QRectF(0,0,0,0)
+    
+class Diagram_Editor(util.Scene_Window):
+    def __init__(self, view):
+        ui = Diagram_Item(view)
+        super().__init__(ui)
+        self.view = view

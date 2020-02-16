@@ -17,6 +17,7 @@ class Implementation(Entity):
 class Instance(Entity):
     _attributes = (
         Attribute("interface", Interface),
+        Attribute("implementation", Implementation),
     )
 
 class Connection(Entity):
@@ -30,3 +31,8 @@ class Hierarchy(Implementation):
         Attribute("subcomponents", OrderedDict, element="subcomponent"),
         Attribute("connections", list, element="connection"),
     )
+    def __init__(self, *args, **kw):
+        super().__init__(self, *args, **kw)
+        for c_name, c in self.subcomponents.items():
+            if not c.name:
+                c.name = c_name
