@@ -2,26 +2,17 @@
 
 from .common import View
 from pidgen import component
-from wumps import Attribute
+from wumps import Attribute, elements
 
-from collections import OrderedDict
-
-class Diagram(View):
+class Connector(View):
     _attributes = (
-        Attribute("hierarchy", component.Hierarchy),
-        Attribute("symbols", OrderedDict, element="symbol"),
+        Attribute("port", component.Port),
     )
-    def __init__(self, *args, **kw):
-        super().__init__(self, *args, **kw)
-        if not self.name:
-            self.name = self.hierarchy.name
-        for s_name, s in self.symbols.items():
-            s.name = s_name
 
 class Symbol(View):
     _attributes = (
         Attribute("instance", component.Instance),
-        Attribute("connectors", OrderedDict, element="connector"),
+        Attribute("connectors", elements(Connector, "connector")),
     )
     def __init__(self, *args, **kw):
         super().__init__(self, *args, **kw)
@@ -32,3 +23,15 @@ class Symbol(View):
 
 class Block(Symbol):
     _attributes = ()
+
+class Diagram(View):
+    _attributes = (
+        Attribute("hierarchy", component.Hierarchy),
+        Attribute("symbols", elements(Symbol, "symbol")),
+    )
+    def __init__(self, *args, **kw):
+        super().__init__(self, *args, **kw)
+        if not self.name:
+            self.name = self.hierarchy.name
+        for s_name, s in self.symbols.items():
+            s.name = s_name

@@ -1,12 +1,21 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from wumps import Attribute, Entity
+from wumps import Attribute, Entity, elements
 
-from collections import OrderedDict
-
+# Should be in Tydl module
+class Type(Entity):
+    _attributes = ()
+    
+class Port(Entity):
+    _attributes = (
+        Attribute("type", Type),
+        Attribute("input", bool, default=False),
+        Attribute("output", bool, default=False),
+    )
+    
 class Interface(Entity):
     _attributes = (
-        Attribute("ports", OrderedDict, element="port"),
+        Attribute("ports", elements(Port, "port")),
     )
     def __init__(self, *args, **kw):
         super().__init__(self, *args, **kw)
@@ -26,14 +35,15 @@ class Instance(Entity):
 
 class Connection(Entity):
     _attributes = (
-        Attribute("source"),
-        Attribute("sink"),
+        Attribute("source", Port),
+        Attribute("sink", Port),
     )
         
 class Hierarchy(Implementation):
     _attributes = (
-        Attribute("subcomponents", OrderedDict, element="subcomponent"),
-        Attribute("connections", list, element="connection"),
+        Attribute("subcomponents", elements(Instance, "subcomponent")),
+        Attribute("connections", elements(Connection, "connection",
+                                          anonymous=True)),
     )
     def __init__(self, *args, **kw):
         super().__init__(self, *args, **kw)

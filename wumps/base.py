@@ -1,18 +1,39 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
+from collections import OrderedDict
+
+class Anonymous_Element_Base(list):
+    pass
+
+class Named_Element_Base(OrderedDict):
+    pass
+
+def elements(element_type=None, attr_name=None, anonymous=False):
+    if anonymous:
+        if element_type is None:
+            class_name = "Anonymous_Elements"
+        else:
+            class_name = "Anonymous_" + element_type.__name__ + "_Elements"
+        base = Anonymous_Element_Base
+    else:
+        if element_type is None:
+            class_name = "Named_Elements"
+        else:
+            class_name = "Named_" + element_type.__name__ + "_Elements"
+        base = Named_Element_Base
+    t = type(class_name, (base,), {})
+    t._element_type = element_type
+    t._attr_name = attr_name
+    t._anonymous = anonymous
+    return t
+
 class Attribute:
-    def __init__(self, name, type=None, alias=None, aliases=None,
-                 element=None, element_aliases=None, **kw):
+    def __init__(self, name, type=None, alias=None, aliases=None, **kw):
         self.name = name
         self.type = type
         self.aliases = list(aliases) if aliases is not None else []
         if alias is not None:
             self.aliases.append(alias)
-        # Note that element/element_aliases are not yet implemented
-        self.element_aliases = (
-            list(element_aliases) if element_aliases is not None else [])
-        if element is not None:
-            self.element_aliases.append(element)
         self.default = None
         self.use_default = False
         for key, value in kw.items():
