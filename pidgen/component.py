@@ -17,10 +17,6 @@ class Interface(Entity):
     _attributes = (
         Attribute("ports", elements(Port, "port")),
     )
-    def __init__(self, *args, **kw):
-        super().__init__(self, *args, **kw)
-        for p_name, p in self.ports.items():
-            p.name = p_name
 
 class Implementation(Entity):
     _attributes = (
@@ -42,10 +38,6 @@ class Connection(Entity):
 class Hierarchy(Implementation):
     _attributes = (
         Attribute("subcomponents", elements(Instance, "subcomponent")),
-        Attribute("connections", elements(Connection, "connection",
-                                          anonymous=True)),
+        Attribute("connections",
+                  elements(Connection, "connection", anonymous=True)),
     )
-    def __init__(self, *args, **kw):
-        super().__init__(self, *args, **kw)
-        for c_name, c in self.subcomponents.items():
-            c.name = c_name

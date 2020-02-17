@@ -4,9 +4,14 @@ from wumps import Attribute, Entity
 
 class View(Entity):
     _attributes = (
+        # Derived entities should add "subject" alias
         Attribute("widget"),
     )
-            
+    def __init__(self, *args, **kw):
+        super().__init__(self, *args, **kw)
+        if not self.name and self.subject:
+            self.name = self.subject.name
+     
 class Environment:
     _viewers = {}
     

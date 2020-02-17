@@ -2,11 +2,13 @@
 
 from collections import OrderedDict
 
-class Anonymous_Element_Base(list):
+class Anonymous_Elements_Base(list):
     pass
 
-class Named_Element_Base(OrderedDict):
-    pass
+class Named_Elements_Base(OrderedDict):
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        value.name = key
 
 def elements(element_type=None, attr_name=None, anonymous=False):
     if anonymous:
@@ -14,13 +16,13 @@ def elements(element_type=None, attr_name=None, anonymous=False):
             class_name = "Anonymous_Elements"
         else:
             class_name = "Anonymous_" + element_type.__name__ + "_Elements"
-        base = Anonymous_Element_Base
+        base = Anonymous_Elements_Base
     else:
         if element_type is None:
             class_name = "Named_Elements"
         else:
             class_name = "Named_" + element_type.__name__ + "_Elements"
-        base = Named_Element_Base
+        base = Named_Elements_Base
     t = type(class_name, (base,), {})
     t._element_type = element_type
     t._attr_name = attr_name
@@ -36,10 +38,15 @@ class Attribute:
             self.aliases.append(alias)
         self.default = None
         self.use_default = False
+        self.value = None
+        self.fixed_value = False
         for key, value in kw.items():
             if key == "default":
                 self.use_default = True
                 self.default = value
+            elif key == "value":
+                self.fixed_value = True
+                self.value = value
             else:
                 raise TypeError(
                     f"__init__() got an unexpected keyword argument '{key}'")
@@ -53,12 +60,40 @@ class Entity_Type(type):
             et, "_attr_info") else dict()
         for a in et._attributes:
             if a.name in et._attr_info:
-                raise Exception(f"'{a.name}' attribute already exists")
-            et._attr_info_list.append(a)
-            et._attr_info[a.name] = a
-            for alias in a.aliases:
-                et._attr_info[alias] = a
+                cls._override(et, a)
+            else:
+                et._attr_info_list.append(a)
+                et._attr_info[a.name] = a
+                for alias in a.aliases:
+                    et._attr_info[alias] = a
         return et
+
+    def _override(et, new_a):
+        existing_a = et._attr_info[new_a.name]
+        if existing_a.type is not None:
+            if new_a.type is None:
+                new_a.type = existing_a.type
+            else:
+                raise Exception("attribute type has already been specified")
+        if existing_a.fixed_value:
+            if new_a.fixed_value:
+                raise Exception("attribute value has already been specified")
+            else:
+                new_a.fixed_value = existing_a.fixed_value
+        if existing_a.use_default and not new_a.use_default:
+            new_a.use_default = True
+            new_a.default = existing_a.default
+        for alias in reversed(existing_a.aliases):
+            if alias in new_a.aliases:
+                new_a.aliases.remove(alias)
+            new_a.aliases.insert(0,alias)
+        # Replace existing attribute with new one
+        old_index = et._attr_info_list.index(existing_a)
+        et._attr_info_list.insert(old_index, new_a)
+        et._attr_info_list.remove(existing_a)
+        et._attr_info[new_a.name] = new_a
+        for alias in new_a.aliases:
+            et._attr_info[alias] = new_a
 
 class Entity(metaclass=Entity_Type):
     _attributes = (
@@ -78,12 +113,18 @@ class Entity(metaclass=Entity_Type):
             self._attrs[a.name] = value
 
     def __getitem__(self, key):
-        return self._attrs[key]
+        if self._attr_info[key].fixed_value:
+            return self._attr_info[key].value
+        unaliased_key = self._attr_info[key].name
+        return self._attrs[unaliased_key]
 
     def __setitem__(self, key, value):
-        if not key in self._attrs:
+        unaliased_key = self._attr_info[key].name
+        if not unaliased_key in self._attrs:
             raise KeyError(key)
-        self._attrs[key] = value
+        if self._attr_info[key].fixed_value:
+            raise AttributeError("attribute value is fixed")
+        self._attrs[unaliased_key] = value
 
     def __getattr__(self, key):
         return self.__getitem__(key)
