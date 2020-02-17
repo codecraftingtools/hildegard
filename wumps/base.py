@@ -30,9 +30,11 @@ def elements(element_type=None, attr_name=None, anonymous=False):
     return t
 
 class Attribute:
-    def __init__(self, name, type=None, alias=None, aliases=None, **kw):
+    def __init__(self, name, type=None, alias=None, aliases=None, save=None,
+                 **kw):
         self.name = name
         self.type = type
+        self.save = save
         self.aliases = list(aliases) if aliases is not None else []
         if alias is not None:
             self.aliases.append(alias)
@@ -73,6 +75,11 @@ class Entity_Type(type):
         if existing_a.type is not None:
             if new_a.type is None:
                 new_a.type = existing_a.type
+            else:
+                raise Exception("attribute type has already been specified")
+        if existing_a.save is not None:
+            if new_a.save is None:
+                new_a.save = existing_a.save
             else:
                 raise Exception("attribute type has already been specified")
         if existing_a.fixed_value:
