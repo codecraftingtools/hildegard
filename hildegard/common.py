@@ -4,7 +4,7 @@ from wumps import Attribute, Entity
 
 class View(Entity):
     _attributes = (
-        # Derived entities should add "subject" alias
+        Attribute("subject"),
         Attribute("widget", save=False),
     )
     def __init__(self, *args, **kw):

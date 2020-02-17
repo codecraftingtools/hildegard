@@ -6,12 +6,12 @@ from wumps import Attribute, elements
 
 class Connector(View):
     _attributes = (
-        Attribute("port", component.Port, alias="subject"),
+        Attribute("subject", component.Port, alias="port"),
     )
 
 class Symbol(View):
     _attributes = (
-        Attribute("instance", component.Instance, alias="subject"),
+        Attribute("subject", component.Instance, alias="instance"),
         Attribute("connectors", elements(Connector, "connector")),
     )
 
@@ -20,6 +20,6 @@ class Block(Symbol):
 
 class Diagram(View):
     _attributes = (
-        Attribute("hierarchy", component.Hierarchy, alias="subject"),
+        Attribute("subject", component.Hierarchy, alias="hierarchy"),
         Attribute("symbols", elements(Symbol, "symbol")),
     )
