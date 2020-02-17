@@ -14,28 +14,32 @@ def main(args=None):
 
     env = Environment()
 
+    h1 = component.Hierarchy(
+        name="Component 1",
+        subcomponents=(
+            ("Sub1", component.Instance()),
+            ("Sub2", component.Instance()),
+        )
+    )
+
     d1 = Diagram(
-        hierarchy = component.Hierarchy(
-            name="Component 1",
-            subcomponents=(
-                ("SC1", component.Instance()),
-                ("SC2", component.Instance()),
-            )
+        hierarchy=h1,
+        symbols=(
+            ("SC1", Block(instance=h1.subcomponents["Sub1"])),
+            ("SC2", Block(instance=h1.subcomponents["Sub2"])),
         )
     )
     env.open(d1)
 
     b1 = Block(
-        instance = component.Instance(name="SC3"),
+        instance=Block(instance=h1.subcomponents["Sub2"]),
     )
     env.open(b1)
     
     d2 = Diagram(
-        hierarchy = component.Hierarchy(
-            name="Component 2",
-            subcomponents=(
-                ("SC4", component.Instance()),
-            )
+        hierarchy=h1,
+        symbols=(
+            ("MySC2", Block(instance=h1.subcomponents["Sub2"])),
         )
     )
     env.open(d2)

@@ -8,6 +8,10 @@ class Interface(Entity):
     _attributes = (
         Attribute("ports", OrderedDict, element="port"),
     )
+    def __init__(self, *args, **kw):
+        super().__init__(self, *args, **kw)
+        for p_name, p in self.ports.items():
+            p.name = p_name
 
 class Implementation(Entity):
     _attributes = (
@@ -34,5 +38,4 @@ class Hierarchy(Implementation):
     def __init__(self, *args, **kw):
         super().__init__(self, *args, **kw)
         for c_name, c in self.subcomponents.items():
-            if not c.name:
-                c.name = c_name
+            c.name = c_name

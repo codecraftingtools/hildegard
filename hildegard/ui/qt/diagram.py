@@ -48,11 +48,11 @@ class Diagram_Item(QGraphicsItem):
         
         self.view = view
         
-        for i, (c_name, c) in enumerate(
-                self.view.hierarchy.subcomponents.items()):
-            c_ui = Block_Item(Block(instance=c))
-            c_ui.moveBy(200*i,0)
-            c_ui.setParentItem(self)
+        for i, (s_name, s) in enumerate(
+                self.view.symbols.items()):
+            s_ui = Block_Item(s)
+            s_ui.moveBy(200*i,0)
+            s_ui.setParentItem(self)
             
     def paint(self, *args, **kw):
         pass
