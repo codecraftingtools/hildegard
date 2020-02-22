@@ -16,6 +16,8 @@ def add_resizers(parent):
         Rect_Resizer(parent, anchor="TL", vertical=True),
         Rect_Resizer(parent, anchor="B",  vertical=False),
         Rect_Resizer(parent, anchor="T",  vertical=False),
+        Rect_Resizer(parent, anchor="L",  vertical=True),
+        Rect_Resizer(parent, anchor="R",  vertical=True),
     )
     
 class Rect_Resizer(QGraphicsRectItem):
@@ -32,13 +34,13 @@ class Rect_Resizer(QGraphicsRectItem):
         else:
             w = self._side
             h = self._border
-        if anchor in ["BR", "TR"]:
+        if anchor in ["BR", "TR", "R"]:
             x = self._side - w
-        elif anchor in ["BL", "TL", "B", "T"]:
+        elif anchor in ["BL", "TL", "B", "T", "L"]:
             x = 0
         if anchor in ["BR", "BL", "B"]:
             y = self._side - h
-        elif anchor in ["TR", "TL", "T"]:
+        elif anchor in ["TR", "TL", "T", "R", "L"]:
             y = 0
         super().__init__(x, y, w, h)
         self.setParentItem(parent)
@@ -46,9 +48,9 @@ class Rect_Resizer(QGraphicsRectItem):
         
     def _update(self):
         parent = self.parentItem()
-        if self._anchor in ["BR", "TR"]:
+        if self._anchor in ["BR", "TR", "R"]:
             x = parent.rect().width() - self._side
-        elif self._anchor in ["BL", "TL"]:
+        elif self._anchor in ["BL", "TL", "L"]:
             x = 0
         elif self._anchor in ["B", "T"]:
             x = self._side
@@ -56,13 +58,19 @@ class Rect_Resizer(QGraphicsRectItem):
             y = parent.rect().height() - self._side
         elif self._anchor in ["TR", "TL", "T"]:
             y = 0
+        elif self._anchor in ["R", "L"]:
+            y = self._side
         self.setPos(x, y)
         if self._anchor in ["B", "T"]:
             r = self.rect()
             r.setWidth(parent.rect().width() - 2*self._side)
             self.setRect(r)
+        if self._anchor in ["R", "L"]:
+            r = self.rect()
+            r.setHeight(parent.rect().height() - 2*self._side)
+            self.setRect(r)
         if parent.editing:
-            if self._anchor in ["B", "T"]:
+            if self._anchor in ["B", "T", "R", "L"]:
                 self.setBrush(QBrush(Qt.NoBrush))
             else:
                 self.setBrush(QBrush(Qt.red))
@@ -90,9 +98,9 @@ class Rect_Resizer(QGraphicsRectItem):
         min_delta_p_y = None
         max_delta_p_y = None        
 
-        if self._anchor in ["BR", "TR"]:
+        if self._anchor in ["BR", "TR", "R"]:
             min_delta_p_x = -(self._last_parent_rect.width() - 3*self._side)
-        elif self._anchor in ["BL", "TL"]:
+        elif self._anchor in ["BL", "TL", "L"]:
             max_delta_p_x = self._last_parent_rect.width() - 3*self._side
         elif self._anchor in ["B", "T"]:
             min_delta_p_x = 0
@@ -101,6 +109,9 @@ class Rect_Resizer(QGraphicsRectItem):
             min_delta_p_y = -(self._last_parent_rect.height() - 3*self._side)
         elif self._anchor in ["TR", "TL", "T"]:
             max_delta_p_y = self._last_parent_rect.height() - 3*self._side
+        elif self._anchor in ["R", "L"]:
+            min_delta_p_y = 0
+            max_delta_p_y = 0
 
         if min_delta_p_x is not None and delta_p.x() < min_delta_p_x:
             delta_p.setX(min_delta_p_x)
@@ -111,10 +122,10 @@ class Rect_Resizer(QGraphicsRectItem):
         if max_delta_p_y is not None and delta_p.y() > max_delta_p_y:
             delta_p.setY(max_delta_p_y)
 
-        if self._anchor in ["BR", "TR"]:
+        if self._anchor in ["BR", "TR", "R"]:
             move_x = 0
             resize_x = delta_p.x()
-        elif self._anchor in ["BL", "TL"]:
+        elif self._anchor in ["BL", "TL", "L"]:
             move_x = delta_p.x()
             resize_x = -delta_p.x()
         elif self._anchor in ["B", "T"]:
@@ -126,6 +137,9 @@ class Rect_Resizer(QGraphicsRectItem):
         elif self._anchor in ["TR", "TL", "T"]:
             move_y = delta_p.y()
             resize_y = -delta_p.y()
+        elif self._anchor in ["R", "L"]:
+            move_y = 0
+            resize_y = 0
         
         self.parentItem().setPos(
             self._last_parent_pos.x() + move_x,
