@@ -1,6 +1,7 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
 from qtpy.QtCore import Qt
+from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import QGraphicsItem, QGraphicsItemGroup, QGraphicsRectItem
 
 def add_resizers(parent):
@@ -40,7 +41,6 @@ class Rect_Resizer(QGraphicsRectItem):
         super().__init__(x, y, w, h)
         self.setParentItem(parent)
         self._update()
-        self.setFlag(self.ItemIsMovable)
         
     def _update(self):
         parent = self.parentItem()
@@ -51,8 +51,16 @@ class Rect_Resizer(QGraphicsRectItem):
         if self._anchor in ["BR", "BL"]:
             y = parent.rect().height() - self._side
         elif self._anchor in ["TR", "TL"]:
-            y = 0    
+            y = 0
         self.setPos(x, y)
+        if parent.editing:
+            self.setBrush(QBrush(Qt.red))
+            self.setPen(QPen(Qt.red))
+            self.setFlag(self.ItemIsMovable)
+        else:
+            self.setBrush(QBrush(Qt.NoBrush))
+            self.setPen(QPen(Qt.NoPen))
+            self.setFlag(self.ItemIsMovable, False)
         
     def mousePressEvent(self, event):
         if (event.button() == Qt.LeftButton):

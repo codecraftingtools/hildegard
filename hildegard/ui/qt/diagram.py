@@ -13,6 +13,7 @@ class Block_Item(QGraphicsRectItem):
     def __init__(self, block):
 
         self.block = block
+        self.editing = False
         
         super().__init__(0, 0, 120, 200)
         self.setBrush(QBrush(Qt.gray))
@@ -33,10 +34,17 @@ class Block_Item(QGraphicsRectItem):
 
         self._resizers = resizer.add_resizers(self)
 
-    def setRect(self, r):
-        super().setRect(r)
+    def mouseDoubleClickEvent(self, event):
+        self.editing = not self.editing
+        self._update()
+        
+    def _update(self):
         for rs in self._resizers:
             rs._update()
+        
+    def setRect(self, r):
+        super().setRect(r)
+        self._update()
         
 class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
