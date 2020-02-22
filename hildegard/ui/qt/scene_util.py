@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from qtpy.QtCore import Qt, QSize, QRect, QRectF, QPoint
+from qtpy.QtCore import QPoint, QRect, QRectF, QSize, Qt
 from qtpy.QtGui import QPainter
 from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import QBoxLayout, QGraphicsScene, QGraphicsView, QWidget

@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from .  import diagram, util
+from .  import diagram, scene_util
 from ...diagram import Block, Diagram
 from ...common import Environment
 
@@ -82,7 +82,7 @@ class GUI_Environment(Environment):
         if not added:
             return False
         if isinstance(view.widget, QGraphicsItem):
-            view.widget = util.Scene_Window(view.widget)
+            view.widget = scene_util.Scene_Window(view.widget)
             view.widget.view = view
         self._add_tab(view)
         if show:
@@ -102,5 +102,5 @@ class GUI_Environment(Environment):
         if (view.widget is not None and
             format == "svg" and
             hasattr(view.widget, "scene")):
-            util.export_scene_as_svg(
+            scene_util.export_scene_as_svg(
                 view.widget.scene)
