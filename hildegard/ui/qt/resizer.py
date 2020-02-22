@@ -9,6 +9,10 @@ def add_resizers(parent):
         Rect_Resizer(parent, anchor="BR", vertical=True),
         Rect_Resizer(parent, anchor="TR", vertical=False),
         Rect_Resizer(parent, anchor="TR", vertical=True),
+        Rect_Resizer(parent, anchor="BL", vertical=False),
+        Rect_Resizer(parent, anchor="BL", vertical=True),
+        Rect_Resizer(parent, anchor="TL", vertical=False),
+        Rect_Resizer(parent, anchor="TL", vertical=True),
     )
     
 class Rect_Resizer(QGraphicsRectItem):
@@ -25,10 +29,13 @@ class Rect_Resizer(QGraphicsRectItem):
         else:
             w = self._side
             h = self._border
-        x = self._side - w
-        if anchor == "BR":
+        if anchor in ["BR", "TR"]:
+            x = self._side - w
+        elif anchor in ["BL", "TL"]:
+            x = 0
+        if anchor in ["BR", "BL"]:
             y = self._side - h
-        elif anchor == "TR":
+        elif anchor in ["TR", "TL"]:
             y = 0
         super().__init__(x, y, w, h)
         self.setParentItem(parent)
@@ -37,10 +44,13 @@ class Rect_Resizer(QGraphicsRectItem):
         
     def _update(self):
         parent = self.parentItem()
-        x = parent.rect().width() - self._side
-        if self._anchor == "BR":
+        if self._anchor in ["BR", "TR"]:
+            x = parent.rect().width() - self._side
+        elif self._anchor in ["BL", "TL"]:
+            x = 0
+        if self._anchor in ["BR", "BL"]:
             y = parent.rect().height() - self._side
-        elif self._anchor == "TR":
+        elif self._anchor in ["TR", "TL"]:
             y = 0    
         self.setPos(x, y)
         
@@ -61,11 +71,14 @@ class Rect_Resizer(QGraphicsRectItem):
         min_delta_p_y = None
         max_delta_p_y = None        
 
-        if self._anchor == "BR":
+        if self._anchor in ["BR", "TR"]:
+            min_delta_p_x = -(self._last_parent_rect.width() - 3*self._side)
+        elif self._anchor in ["BL", "TL"]:
+            max_delta_p_x = self._last_parent_rect.width() - 3*self._side
+        if self._anchor in ["BR", "BL"]:
             min_delta_p_y = -(self._last_parent_rect.height() - 3*self._side)
-        elif self._anchor == "TR":
+        elif self._anchor in ["TR", "TL"]:
             max_delta_p_y = self._last_parent_rect.height() - 3*self._side
-        min_delta_p_x = -(self._last_parent_rect.width() - 3*self._side)
 
         if min_delta_p_x is not None and delta_p.x() < min_delta_p_x:
             delta_p.setX(min_delta_p_x)
@@ -76,12 +89,16 @@ class Rect_Resizer(QGraphicsRectItem):
         if max_delta_p_y is not None and delta_p.y() > max_delta_p_y:
             delta_p.setY(max_delta_p_y)
 
-        move_x = 0
-        resize_x = delta_p.x()
-        if self._anchor == "BR":
+        if self._anchor in ["BR", "TR"]:
+            move_x = 0
+            resize_x = delta_p.x()
+        elif self._anchor in ["BL", "TL"]:
+            move_x = delta_p.x()
+            resize_x = -delta_p.x()
+        if self._anchor in ["BR", "BL"]:
             move_y = 0
             resize_y = delta_p.y()
-        elif self._anchor == "TR":
+        elif self._anchor in ["TR", "TL"]:
             move_y = delta_p.y()
             resize_y = -delta_p.y()
         
