@@ -57,13 +57,13 @@ class Block_Item(QGraphicsRectItem):
         self._r_rows = []
         
         self._resizers = resizer.add_resizers(self)
-        self._update()
+        self.do_update()
         
     def mouseDoubleClickEvent(self, event):
         self.editing = not self.editing
-        self._update()
+        self.do_update()
         
-    def _update(self):
+    def do_update(self):
         r = self.rect()
         self._area.setRect(r)
         self._receptor_area.setRect(r)
@@ -108,11 +108,11 @@ class Block_Item(QGraphicsRectItem):
         self._title_outline.setRect(tor)
         
         for rs in self._resizers:
-            rs._update()
+            rs.do_update()
         
     def setRect(self, r):
         super().setRect(r)
-        self._update()
+        self.do_update()
         
 class Diagram_Item(QGraphicsItem):
     def __init__(self, view):

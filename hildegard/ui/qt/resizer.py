@@ -44,9 +44,9 @@ class Rect_Resizer(QGraphicsRectItem):
             y = 0
         super().__init__(x, y, w, h)
         self.setParentItem(parent)
-        self._update()
+        self.do_update()
         
-    def _update(self):
+    def do_update(self):
         parent = self.parentItem()
         if self._anchor in ["BR", "TR", "R"]:
             x = parent.rect().width() - self._side
