@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from hildegard.diagram import Block, Diagram
+from hildegard.diagram import Block, Connector, Diagram
 from hildegard import Environment
 from pidgen import component
 
@@ -13,19 +13,44 @@ def main(args=None):
         args = sys.argv
 
     env = Environment()
-
+    
+    if1 = component.Interface(
+        name="Interface 1",
+        ports=(
+            ("Port 1", component.Port(name="Port 1")),
+            ("Port 2", component.Port(name="Port 2")),
+        )
+    )
+    
+    im1 = component.Implementation(
+        name="Implementation 1",
+        interface=if1,
+    )
+    
     h1 = component.Hierarchy(
         name="Component 1",
         subcomponents=(
-            ("Sub1", component.Instance()),
-            ("Sub2", component.Instance()),
+            ("Sub1", component.Instance(
+                interface=if1,
+                implementation=im1,
+            )),
+            ("Sub2", component.Instance(
+                interface=if1,
+                implementation=im1,
+            )),
         )
     )
 
     d1 = Diagram(
         hierarchy=h1,
         symbols=(
-            ("SC1", Block(instance=h1.subcomponents["Sub1"])),
+            ("SC1", Block(
+                instance=h1.subcomponents["Sub1"],
+                connectors=(
+                    ("Connector 1", Connector(port=if1.ports["Port 1"])),
+                    ("Connector 2", Connector(port=if1.ports["Port 2"])),
+                )
+            )),
             ("SC2", Block(instance=h1.subcomponents["Sub2"])),
         )
     )
