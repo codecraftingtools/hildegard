@@ -47,8 +47,12 @@ def main(args=None):
             ("SC1", Block(
                 instance=h1.subcomponents["Sub1"],
                 connectors=(
-                    ("Connector 1", Connector(port=if1.ports["Port 1"])),
-                    ("Connector 2", Connector(port=if1.ports["Port 2"])),
+                    ("Connector 1", Connector(
+                        port=if1.ports["Port 1"], row=1,
+                    )),
+                    ("Connector 2", Connector(
+                        port=if1.ports["Port 2"], row=2,
+                    )),
                 )
             )),
             ("SC2", Block(instance=h1.subcomponents["Sub2"])),

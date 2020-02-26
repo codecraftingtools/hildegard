@@ -7,6 +7,7 @@ from wumps import Attribute, elements
 class Connector(View):
     _attributes = (
         Attribute("subject", component.Port, alias="port"),
+        Attribute("row", int),
     )
 
 class Symbol(View):
