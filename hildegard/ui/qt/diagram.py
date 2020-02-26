@@ -12,9 +12,22 @@ from qtpy.QtWidgets import (
 )
 
 class Connector_Item(QGraphicsRectItem):
-    def __init__(self, connector, *args, **kw):
+    def __init__(self, connector, pad):
         self._connector = connector
-        super().__init__(*args, **kw)
+        self._pad = pad
+        super().__init__(0, 0, 10, 10)
+        title = QGraphicsTextItem(self._connector.name)
+        self._title = title
+        title.setParentItem(self)
+        title_br = title.boundingRect()
+        title.setPos(pad, pad)
+        self._text_height = title_br.height()
+        self._height = title_br.height() + 2*pad
+        self._min_width = title_br.width() + 2*pad
+        r = self.rect()
+        r.setWidth(self._min_width)
+        r.setHeight(self._height)
+        self.setRect(r)
         
     def mouseMoveEvent(self, event):
         self.parentItem().parentItem().connector_move(self, event)
@@ -88,12 +101,10 @@ class Block_Item(QGraphicsRectItem):
         
         self._connectors = []
         for i, (c_name, c) in enumerate(block.connectors.items()):
-            new_r = Connector_Item(c, 0,0,30,self._row_height)
-            new_r.setFlag(self.ItemIsMovable)
+            new_r = Connector_Item(c, self._pad)
             new_r.setParentItem(self._area)
             new_r.setPen(QPen(Qt.black));
             new_r.setBrush(QBrush(Qt.NoBrush));
-            new_r.setPos(self._pad,self._pad+(i+1)*self._row_height)
             self._connectors.append(new_r)
             
         self._resizer = Rect_Resizer(self, debug=False)
@@ -104,17 +115,29 @@ class Block_Item(QGraphicsRectItem):
         self._ireceptors.highlight_cell_under_mouse()
 
     def connector_release(self, connector, event):
-        print("release", connector._connector.name, connector._connector.row)
-        self._receptors.update_cells()
-        self._ireceptors.update_cells()
+        action = None
+        r, c = self._receptors.highlight_cell_under_mouse()
+        if r is not None:
+            action = f"move to {r} {c}"
+            connector._connector.row = r
+        else:
+            r, c = self._ireceptors.highlight_cell_under_mouse()
+            action = f"insert at {r} {c}"
+        print(f"released {connector._connector.name} "
+              f"({connector._connector.row}): action: {action}")
+        self._do_update()
         
     def mouseDoubleClickEvent(self, event):
         self._editing = not self._editing
         self._resizer.resizing = self._editing
         if self._editing:
             self.setPen(QPen(Qt.red))
+            for c in self._connectors:
+                c.setFlag(self.ItemIsMovable)
         else:
             self.setPen(QPen(Qt.black))
+            for c in self._connectors:
+                c.setFlag(self.ItemIsMovable, False)
         self._do_update()
         
     def _do_update(self):
@@ -122,7 +145,6 @@ class Block_Item(QGraphicsRectItem):
         self._area.setRect(r)
         self._receptor_area.setRect(r)
         w = r.width()
-        h = r.height()
 
         self._receptors.update_cells()
         self._ireceptors.update_cells()
@@ -134,7 +156,11 @@ class Block_Item(QGraphicsRectItem):
         self._title_outline.setRect(tor)
 
         self._resizer.update_handles()
-        
+
+        for c in self._connectors:
+            i = c._connector.row
+            c.setPos(self._pad,self._pad+(i+1)*self._row_height)
+
     def setRect(self, r):
         super().setRect(r)
         self._do_update()

@@ -52,13 +52,16 @@ class Receptor_Grid:
         self._cells[r][c].active = active
         
     def highlight_cell_under_mouse(self):
-        for row in self._cells:
-            for cell in row:
+        r, c = None, None
+        for ri, row in enumerate(self._cells):
+            for ci, cell in enumerate(row):
                 if cell.isVisible() and cell.isUnderMouse() and cell.active:
                     cell.setBrush(QBrush(Qt.green));
+                    r, c = ri, ci
                 else:
                     self._reset_cell(cell)
-                    
+        return r, c
+    
     def update_cells(self):
         parent_r = self._parent_item.rect()
         h = parent_r.height() - self._top_border - self._bottom_border
