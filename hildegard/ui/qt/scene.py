@@ -5,7 +5,7 @@ from qtpy.QtGui import QPainter
 from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import QBoxLayout, QGraphicsScene, QGraphicsView, QWidget
 
-class Scene_Window(QWidget):
+class Window(QWidget):
     def __init__(self, ui):
         super().__init__()
         
@@ -14,7 +14,7 @@ class Scene_Window(QWidget):
         scene = QGraphicsScene()
         self.scene = scene
         
-        scene_view = Scene_View(self)
+        scene_view = View(self)
         self.scene_view = scene_view
         scene_view.setScene(scene)
         scene_view.setMinimumSize(350, 350)
@@ -25,7 +25,7 @@ class Scene_Window(QWidget):
             
         self.resize(800, 600)
 
-class Scene_View(QGraphicsView):
+class View(QGraphicsView):
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -151,7 +151,7 @@ class Scene_View(QGraphicsView):
         return QPoint(self.viewport().width() // 2,
                       self.viewport().height() // 2)
     
-def export_scene_as_svg(scene, file_name=None):
+def export_as_svg(scene, file_name=None):
     if file_name is None:
         file_name = "out.svg"
     

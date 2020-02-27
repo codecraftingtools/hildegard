@@ -7,20 +7,19 @@ from qtpy.QtWidgets import QGraphicsRectItem
 class Rect_Resizer:
     def __init__(self, parent_item, resizing=False, debug=False):
         self.resizing = resizing
-        self.debug = debug
         self._handles = [
-            Resizer_Handle(self, parent_item, anchor="BR", vertical=False),
-            Resizer_Handle(self, parent_item, anchor="BR", vertical=True),
-            Resizer_Handle(self, parent_item, anchor="TR", vertical=False),
-            Resizer_Handle(self, parent_item, anchor="TR", vertical=True),
-            Resizer_Handle(self, parent_item, anchor="BL", vertical=False),
-            Resizer_Handle(self, parent_item, anchor="BL", vertical=True),
-            Resizer_Handle(self, parent_item, anchor="TL", vertical=False),
-            Resizer_Handle(self, parent_item, anchor="TL", vertical=True),
-            Resizer_Handle(self, parent_item, anchor="B",  vertical=False),
-            Resizer_Handle(self, parent_item, anchor="T",  vertical=False),
-            Resizer_Handle(self, parent_item, anchor="L",  vertical=True),
-            Resizer_Handle(self, parent_item, anchor="R",  vertical=True),
+            Resizer_Handle(self, parent_item, "BR", False, debug),
+            Resizer_Handle(self, parent_item, "BR", True,  debug),
+            Resizer_Handle(self, parent_item, "TR", False, debug),
+            Resizer_Handle(self, parent_item, "TR", True,  debug),
+            Resizer_Handle(self, parent_item, "BL", False, debug),
+            Resizer_Handle(self, parent_item, "BL", True,  debug),
+            Resizer_Handle(self, parent_item, "TL", False, debug),
+            Resizer_Handle(self, parent_item, "TL", True,  debug),
+            Resizer_Handle(self, parent_item, "B",  False, debug),
+            Resizer_Handle(self, parent_item, "T",  False, debug),
+            Resizer_Handle(self, parent_item, "L",  True,  debug),
+            Resizer_Handle(self, parent_item, "R",  True,  debug),
         ]
         
     def update_handles(self):
@@ -28,14 +27,17 @@ class Rect_Resizer:
             h.do_update()
             
 class Resizer_Handle(QGraphicsRectItem):
-    def __init__(self, resizer, parent, anchor="BR", vertical=False):
+    def __init__(self, resizer, parent, anchor, vertical=False, debug=False):
         self._resizer = resizer
+        self._anchor = anchor
+        self._debug = debug
+        
         self._border = 10
         self._side = 40
-        self._anchor = anchor
         self._last_mouse_scene_pos = None
         self._last_parent_rect = None
         self._last_parent_pos = None
+
         if vertical:
             w = self._border
             h = self._side
@@ -51,11 +53,13 @@ class Resizer_Handle(QGraphicsRectItem):
         elif anchor in ["TR", "TL", "T", "R", "L"]:
             y = 0
         super().__init__(x, y, w, h)
+        
         self.setParentItem(parent)
         self.do_update()
         
     def do_update(self):
         parent = self.parentItem()
+
         if self._anchor in ["BR", "TR", "R"]:
             x = parent.rect().width() - self._side
         elif self._anchor in ["BL", "TL", "L"]:
@@ -69,6 +73,7 @@ class Resizer_Handle(QGraphicsRectItem):
         elif self._anchor in ["R", "L"]:
             y = self._side
         self.setPos(x, y)
+        
         if self._anchor in ["B", "T"]:
             r = self.rect()
             r.setWidth(parent.rect().width() - 2*self._side)
@@ -77,8 +82,9 @@ class Resizer_Handle(QGraphicsRectItem):
             r = self.rect()
             r.setHeight(parent.rect().height() - 2*self._side)
             self.setRect(r)
+            
         if self._resizer.resizing:
-            if self._resizer.debug:
+            if self._debug:
                 if self._anchor in ["B", "T", "R", "L"]:
                     self.setBrush(QBrush(Qt.NoBrush))
                 else:

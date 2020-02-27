@@ -5,11 +5,14 @@ from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import QGraphicsRectItem
 
 class Receptor(QGraphicsRectItem):
-    def __init__(self, *args, active=True, **kw):
-        super().__init__(*args, **kw)
-        self.active = active
+    def __init__(self, parent_item=None, width=10, height=10, sensitive=True):
+        super().__init__(0, 0, width, height)
+        if parent_item:
+            self.setParentItem(parent_item)
+        self.sensitive = sensitive
+        self.setOpacity(0.5)
         
-class Receptor_Grid:
+class Grid:
     def __init__(
             self, parent_item, n_rows=None, n_cols=None,
             cell_size=None, cell_width=None, cell_height=None,
@@ -17,7 +20,7 @@ class Receptor_Grid:
             border=0, top_border=None, bottom_border=None,
             left_border=None, right_border=None,
             stretch_last_row=False, stretch_last_col=False,
-            debug_color=None, active=True):
+            sensitive=True, debug_color=None, debug=False):
         self._parent_item = parent_item
         self._n_rows = n_rows
         self._n_cols = n_cols
@@ -35,31 +38,33 @@ class Receptor_Grid:
                               border)
         self._stretch_last_row = stretch_last_row
         self._stretch_last_col = stretch_last_col
+        self._sensitive = sensitive
         self._debug_color = debug_color
-        self._active = active
+        self._debug = debug
+
         self._cells = []
         self.update_cells()
 
-    def _reset_cell(self, cell):
-        if self._debug_color:
+    def _reset_appearance(self, cell):
+        if self._debug and self._debug_color:
             cell.setPen(QPen(Qt.black));
             cell.setBrush(QBrush(self._debug_color));
         else:
             cell.setPen(QPen(Qt.NoPen));
             cell.setBrush(QBrush(Qt.NoBrush));
 
-    def set_active(self, r, c, active):
-        self._cells[r][c].active = active
+    def set_cell_sensitivity(self, r, c, sensitive):
+        self._cells[r][c].sensitive = sensitive
         
-    def highlight_cell_under_mouse(self):
+    def highlight_sensitive_cell_under_mouse(self):
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
-                if cell.isVisible() and cell.isUnderMouse() and cell.active:
+                if cell.isVisible() and cell.isUnderMouse() and cell.sensitive:
                     cell.setBrush(QBrush(Qt.green));
                     r, c = ri, ci
                 else:
-                    self._reset_cell(cell)
+                    self._reset_appearance(cell)
         return r, c
     
     def update_cells(self):
@@ -67,6 +72,7 @@ class Receptor_Grid:
         h = parent_r.height() - self._top_border - self._bottom_border
         w = parent_r.width() - self._left_border - self._right_border
 
+        # Determine n_rows, cell_h, last_cell_h
         if self._n_rows is None:
             v_interval = self._cell_height + self._row_spacing
             max_rows = int(h // v_interval)
@@ -85,6 +91,7 @@ class Receptor_Grid:
             cell_h = (h - space) / n_rows
             last_cell_h = cell_h
             
+        # Determine n_cols, cell_w, last_cell_w
         if self._n_cols is None:
             h_interval = self._cell_width + self._col_spacing
             max_cols = int(w // h_interval)
@@ -102,16 +109,17 @@ class Receptor_Grid:
             space = (n_cols - 1) * self._col_spacing
             cell_w = (w - space) / n_cols
             last_cell_w = cell_w
-            
+
+        # Set cell position and size, adding new rows and columns as required
         for ri in range(n_rows):
             if ri >= len(self._cells):
                 self._cells.append([])
             row = self._cells[ri]
             for ci in range(n_cols):
                 if ci >= len(row):
-                    r = Receptor(0, 0, cell_w, cell_h, active=self._active)
-                    r.setParentItem(self._parent_item)
-                    r.setOpacity(0.5)
+                    r = Receptor(
+                        parent_item=self._parent_item,
+                        sensitive=self._sensitive)
                     row.append(r)
                 cell = row[ci]
                 cell_r = cell.rect()
@@ -124,15 +132,14 @@ class Receptor_Grid:
                 else:
                     cell_r.setHeight(cell_h)
                 cell.setRect(cell_r)
-                cell_x = self._left_border + ci*(cell_w+self._col_spacing)
-                cell_y = self._top_border + ri*(cell_h+self._row_spacing)
-                cell.setX(cell_x)
-                cell.setY(cell_y)
-                
+                cell.setX(self._left_border + ci*(cell_w+self._col_spacing))
+                cell.setY(self._top_border + ri*(cell_h+self._row_spacing))
+
+        # Hide cells that are outside the bounds of the parent rect
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
                 if ri >= n_rows or ci >= n_cols :
                     cell.hide()
                 else:
-                    self._reset_cell(cell)
+                    self._reset_appearance(cell)
                     cell.show()
