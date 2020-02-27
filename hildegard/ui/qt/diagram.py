@@ -12,22 +12,36 @@ from qtpy.QtWidgets import (
 )
 
 class Connector_Item(QGraphicsRectItem):
-    def __init__(self, connector, parent_item=None):
+    def __init__(self, connector, parent_item=None, debug=False):
         self._connector = connector
+        self._debug = debug
         self._title = QGraphicsTextItem(self._connector.name)
         title_br = self._title.boundingRect()
         super().__init__(0, 0, title_br.width(), title_br.height())
         self._title.setParentItem(self)
         if parent_item:
             self.setParentItem(parent_item)
-        self.setPen(QPen(Qt.black));
-        self.setBrush(QBrush(Qt.gray));
-        
+        self._set_default_appearance()
+ 
+    def _set_default_appearance(self):
+        if self._debug:
+            self.setPen(QPen(Qt.black))
+        else:
+            self.setPen(QPen(Qt.NoPen))
+        self.setBrush(QBrush(Qt.NoBrush))
+
+    def mousePressEvent(self, event):
+        if self.flags() & self.ItemIsMovable:
+            self.setPen(QPen(Qt.black))
+            self.setBrush(QBrush(Qt.gray))
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event):
         self.parentItem().parentItem().handle_connector_move(self, event)
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        self._set_default_appearance()
         self.parentItem().parentItem().handle_connector_release(self, event)
         super().mouseReleaseEvent(event)
         
@@ -65,7 +79,8 @@ class Block_Item(QGraphicsRectItem):
 
         self._connectors = []
         for i, (c_name, c) in enumerate(block.connectors.items()):
-            new_item = Connector_Item(c, parent_item=self._connector_layer)
+            new_item = Connector_Item(
+                c, parent_item=self._connector_layer, debug=self._debug)
             self._connectors.append(new_item)
             
         rl = self._receptor_layer = QGraphicsRectItem(self.rect())
