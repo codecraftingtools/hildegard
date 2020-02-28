@@ -10,7 +10,6 @@ class Receptor(QGraphicsRectItem):
         if parent_item:
             self.setParentItem(parent_item)
         self.sensitive = sensitive
-        self.setOpacity(0.5)
         
 class Grid:
     def __init__(
@@ -46,6 +45,7 @@ class Grid:
         self.update_cells()
 
     def _reset_appearance(self, cell):
+        cell.setOpacity(0.2)
         if self._debug and self._debug_color:
             cell.setPen(QPen(Qt.black));
             cell.setBrush(QBrush(self._debug_color));
@@ -62,6 +62,7 @@ class Grid:
             for ci, cell in enumerate(row):
                 if cell.isVisible() and cell.isUnderMouse() and cell.sensitive:
                     cell.setBrush(QBrush(Qt.green));
+                    cell.setOpacity(0.5)
                     r, c = ri, ci
                 else:
                     self._reset_appearance(cell)

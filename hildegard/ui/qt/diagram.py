@@ -50,7 +50,7 @@ class Block_Item(QGraphicsRectItem):
         self._block = block
         self._debug = debug
         
-        pad = self._pad = 5
+        self._vpad = 5
         self._editing = False
 
         super().__init__(0, 0, 120, 200)
@@ -59,14 +59,16 @@ class Block_Item(QGraphicsRectItem):
         
         t = self._title = QGraphicsTextItem(self._block.name)
         t.setParentItem(self)
-        t.setPos(2*pad, 2*pad)
+        t.setPos(0, self._vpad)
         #t.setZValue(1)
-        title_br = t.boundingRect()
-        text_height = title_br.height()
-        self._row_height = text_height + 2*pad
+        text_height = t.boundingRect().height()
+        
+        self._row_height = text_height
+        self._insert_receptor_height = text_height/2.0
+        self._header_height = text_height + 2*self._vpad
         
         tr = self._title_rect = QGraphicsRectItem(
-            0, 0, title_br.width() + 4*pad, title_br.height() + 3*pad)
+            0, 0, 10, self._header_height) # width set later
         tr.setBrush(QBrush(Qt.darkGray))
         tr.setParentItem(self)
         self._title.setParentItem(tr)
@@ -91,9 +93,9 @@ class Block_Item(QGraphicsRectItem):
         
         self._receptors = receptor.Grid(
             parent_item=self._receptor_layer, n_cols=3,
-            cell_height=text_height, row_spacing=2*self._pad,
-            top_border=4*self._pad+text_height,
-            bottom_border=2*self._pad,
+            cell_height=self._row_height,
+            top_border=self._header_height,
+            bottom_border=self._vpad,
             debug_color=Qt.cyan,
             debug=self._debug,
         )
@@ -106,8 +108,9 @@ class Block_Item(QGraphicsRectItem):
         
         self._insert_receptors = receptor.Grid(
             parent_item=self._insert_receptor_layer, n_cols=3,
-            cell_height=self._pad*2, row_spacing=text_height,
-            top_border=2*self._pad+text_height,
+            cell_height=self._insert_receptor_height,
+            row_spacing=self._row_height - self._insert_receptor_height,
+            top_border=self._header_height - self._insert_receptor_height/2.0,
             stretch_last_row=True,
             sensitive=False,
             debug_color=Qt.yellow,
@@ -121,18 +124,24 @@ class Block_Item(QGraphicsRectItem):
         self._do_update()
 
     def handle_connector_move(self, connector, event):
-        self._receptors.highlight_sensitive_cell_under_mouse()
-        self._insert_receptors.highlight_sensitive_cell_under_mouse()
+        r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
+        if r is None:
+            self._receptors.highlight_sensitive_cell_under_mouse()
+        else:
+            self._receptors.update_cells()
 
     def handle_connector_release(self, connector, event):
         action = None
-        r, c = self._receptors.highlight_sensitive_cell_under_mouse()
+        r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
         if r is not None:
-            action = f"move to {r} {c}"
-            connector._connector.row = r
-        else:
-            r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
             action = f"insert at {r} {c}"
+        else:
+            r, c = self._receptors.highlight_sensitive_cell_under_mouse()
+            if r is not None:
+                action = f"move to {r} {c}"
+                connector._connector.row = r
+            else:
+                action = f"aborted move"
         print(f"released {connector._connector.name} "
               f"({connector._connector.row}): action: {action}")
         self._do_update()
@@ -170,7 +179,7 @@ class Block_Item(QGraphicsRectItem):
 
         for c in self._connectors:
             i = c._connector.row
-            c.setPos(self._pad,self._pad+(i+1)*self._row_height)
+            c.setPos(0, self._header_height + i*self._row_height)
             
         self._receptors.update_cells()
         self._insert_receptors.update_cells()
