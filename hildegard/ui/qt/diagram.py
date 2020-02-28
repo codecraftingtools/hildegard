@@ -22,6 +22,8 @@ class Connector_Title(QGraphicsTextItem):
             cursor = self.textCursor()
             cursor.movePosition(cursor.Right)
             self.setTextCursor(cursor)
+        elif key == Qt.Key_Escape:
+            self.clearFocus()
         super().keyPressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
@@ -31,6 +33,10 @@ class Connector_Title(QGraphicsTextItem):
     def focusOutEvent(self, event):
         self.setTextInteractionFlags(Qt.NoTextInteraction)
         self.parentItem()._connector.name = self.toPlainText()
+        r = self.parentItem().rect()
+        r.setWidth(self.boundingRect().width())
+        self.parentItem().setRect(r)
+        self.parentItem().parentItem().parentItem()._ensure_minimum_size()
         super().focusOutEvent(event)
         
 class Connector_Item(QGraphicsRectItem):
