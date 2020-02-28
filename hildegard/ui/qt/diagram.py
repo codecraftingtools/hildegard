@@ -148,13 +148,12 @@ class Block_Item(QGraphicsRectItem):
             r, c = self._receptors.highlight_sensitive_cell_under_mouse()
             if r is not None: # Move to open row
                 action = f"move to {r} {c}"
-                connector._connector.row = r
-                connector._connector.col = c
+                self._move_connector_to(connector, r, c)
             else: # Aborted move
                 connector._connector.row = self._start_move_connector_row
                 action = f"aborted move"
-        print(f"released {connector._connector.name} "
-              f"({prev_r} {prev_c}): action: {action}")
+        #print(f"released {connector._connector.name} "
+        #      f"({prev_r} {prev_c}): action: {action}")
         self._do_update()
         
     def mouseDoubleClickEvent(self, event):
@@ -174,6 +173,53 @@ class Block_Item(QGraphicsRectItem):
             x._connector.row if x._connector.row is not None
             else -10)
 
+    def _get_occupied_cols(self):
+        # Search through the connectors in order of the row position
+        occupied_cols = {}
+        for c in self._connectors:
+            ri = c._connector.row
+            if not ri in occupied_cols:
+                occupied_cols[ri] = []
+            occupied_cols[ri].append(c._connector.col)
+        return occupied_cols
+    
+    def _find_connector_at(self, row, col):
+        for c in self._connectors:
+            ri = c._connector.row
+            ci = c._connector.col
+            if ri == row and ci == col:
+                return c
+        return None
+        
+    def _move_connector_to(self, connector, row, col):
+        occupied_cols = self._get_occupied_cols()
+        # If we are inserting into a row with another cell
+        if row in occupied_cols:
+            # If we are inserting on the left
+            if col == 0:
+                center_c = self._find_connector_at(row, 1)
+                # Move any existing centered port to the right
+                if center_c is not None:
+                    center_c._connector.col = 2
+            # If we are inserting in the center
+            elif col == 1:
+                left_c = self._find_connector_at(row, 0)
+                # Insert to the right of the existing left connector
+                if left_c is not None:
+                    col = 2
+                right_c = self._find_connector_at(row, 2)
+                # Insert to the left of the existing right connector
+                if right_c is not None:
+                    col = 0
+            # If we are inserting on the right
+            elif col == 2:
+                center_c = self._find_connector_at(row, 1)
+                # Move any existing centered port to the left
+                if center_c is not None:
+                    center_c._connector.col = 0
+        connector._connector.row = row
+        connector._connector.col = col
+        
     def _insert_connector_at(self, connector, row, col):
         sorted_connectors = self._get_sorted_connectors()
         last_r = -1
@@ -198,23 +244,29 @@ class Block_Item(QGraphicsRectItem):
         self._insert_receptors.set_all_cell_sensitivity(False)
         self._receptors.set_all_cell_sensitivity(True)
 
+        occupied_cols = self._get_occupied_cols()
+            
         # Search through the connectors in order of the row position
         sorted_connectors = self._get_sorted_connectors()
-        last_r = -1
+        last_ri = -1
         for c in sorted_connectors:
-            r = c._connector.row
-            if r is None:
+            ri = c._connector.row
+            ci = c._connector.col
+            if ri is None:
                 # This connector is being moved, so disregard it
                 continue
-            # Moving to populated rows is not permitted
-            for c in range(3):
-                self._receptors.set_cell_sensitivity(r, c, False)
+            # Moving to populated locations is not permitted
+            if ci in occupied_cols[ri]:
+                self._receptors.set_cell_sensitivity(ri, ci, False)
+            # Moving to a cell in a row with two connectors is not permitted
+            if len(occupied_cols[ri]) > 1:
+                self._receptors.set_cell_sensitivity(ri, 1, False)
             # If there is a gap between two consecutive rows
-            if r == last_r + 1:
+            if ri == last_ri + 1:
                 # Add insert receptors between the rows
-                for c in range(3):
-                    self._insert_receptors.set_cell_sensitivity(r, c, True)
-            last_r = r
+                for cii in range(3):
+                    self._insert_receptors.set_cell_sensitivity(ri, cii, True)
+            last_ri = ri
     
     def _do_update(self):
         self._update_sensitivity()
