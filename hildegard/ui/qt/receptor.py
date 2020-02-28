@@ -56,6 +56,11 @@ class Grid:
     def set_cell_sensitivity(self, r, c, sensitive):
         self._cells[r][c].sensitive = sensitive
         
+    def set_all_cell_sensitivity(self, sensitive):
+        for row in self._cells:
+            for cell in row:
+                cell.sensitive = sensitive
+        
     def highlight_sensitive_cell_under_mouse(self):
         r, c = None, None
         for ri, row in enumerate(self._cells):

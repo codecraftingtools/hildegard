@@ -34,6 +34,8 @@ class Connector_Item(QGraphicsRectItem):
         if self.flags() & self.ItemIsMovable:
             self.setPen(QPen(Qt.black))
             self.setBrush(QBrush(Qt.gray))
+            self.parentItem().parentItem().handle_connector_start_move(
+                self, event)
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -42,7 +44,7 @@ class Connector_Item(QGraphicsRectItem):
 
     def mouseReleaseEvent(self, event):
         self._set_default_appearance()
-        self.parentItem().parentItem().handle_connector_release(self, event)
+        self.parentItem().parentItem().handle_connector_end_move(self, event)
         super().mouseReleaseEvent(event)
         
 class Block_Item(QGraphicsRectItem):
@@ -52,7 +54,8 @@ class Block_Item(QGraphicsRectItem):
         
         self._vpad = 5
         self._editing = False
-
+        self._start_move_connector_row = None
+        
         super().__init__(0, 0, 120, 200)
         self.setBrush(QBrush(Qt.gray))
         self.setFlag(self.ItemIsMovable)
@@ -116,13 +119,16 @@ class Block_Item(QGraphicsRectItem):
             debug_color=Qt.yellow,
             debug=self._debug,
         )
-        for c in range(3):
-            self._insert_receptors.set_cell_sensitivity(0, c, True)
         
         self._resizer = Rect_Resizer(self, debug=self._debug)
 
         self._do_update()
 
+    def handle_connector_start_move(self, connector, event):
+        self._start_move_connector_row = connector._connector.row
+        connector._connector.row = None
+        self._update_sensitivity()
+        
     def handle_connector_move(self, connector, event):
         r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
         if r is None:
@@ -130,17 +136,19 @@ class Block_Item(QGraphicsRectItem):
         else:
             self._receptors.update_cells()
 
-    def handle_connector_release(self, connector, event):
+    def handle_connector_end_move(self, connector, event):
         action = None
         r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
         if r is not None:
             action = f"insert at {r} {c}"
+            self._insert_connector_at(connector, r)
         else:
             r, c = self._receptors.highlight_sensitive_cell_under_mouse()
             if r is not None:
                 action = f"move to {r} {c}"
                 connector._connector.row = r
             else:
+                connector._connector.row = self._start_move_connector_row
                 action = f"aborted move"
         print(f"released {connector._connector.name} "
               f"({connector._connector.row}): action: {action}")
@@ -156,8 +164,57 @@ class Block_Item(QGraphicsRectItem):
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable, False)
         self._do_update()
+
+    def _get_sorted_connectors(self):
+        return sorted(
+            self._connectors, key=lambda x:
+            x._connector.row if x._connector.row is not None
+            else -10)
+
+    def _insert_connector_at(self, connector, index):
+        sorted_connectors = self._get_sorted_connectors()
+        last_r = -1
+        for c in sorted_connectors:
+            r = c._connector.row
+            if r is None:
+                # This connector is being moved, so disregard it
+                continue
+            # For existing rows on or after the insert index
+            if r >= index:
+                # If there is a gap
+                if r - last_r > 1:
+                    # Stop shifting the rows down
+                    break
+                # Shift the row down
+                c._connector.row = r + 1
+            last_r = r
+        connector._connector.row = index
         
+    def _update_sensitivity(self):
+        self._insert_receptors.set_all_cell_sensitivity(False)
+        self._receptors.set_all_cell_sensitivity(True)
+
+        # Search through the connectors in order of the row position
+        sorted_connectors = self._get_sorted_connectors()
+        last_r = -1
+        for c in sorted_connectors:
+            r = c._connector.row
+            if r is None:
+                # This connector is being moved, so disregard it
+                continue
+            # Moving to populated rows is not permitted
+            for c in range(3):
+                self._receptors.set_cell_sensitivity(r, c, False)
+            # If there is a gap between two consecutive rows
+            if r == last_r + 1:
+                # Add insert receptors between the rows
+                for c in range(3):
+                    self._insert_receptors.set_cell_sensitivity(r, c, True)
+            last_r = r
+    
     def _do_update(self):
+        self._update_sensitivity()
+        
         if self._editing:
             self.setPen(QPen(Qt.red,2))
             self._title_rect.setPen(QPen(Qt.red,2))
@@ -179,7 +236,8 @@ class Block_Item(QGraphicsRectItem):
 
         for c in self._connectors:
             i = c._connector.row
-            c.setPos(0, self._header_height + i*self._row_height)
+            if i is not None:
+                c.setPos(0, self._header_height + i*self._row_height)
             
         self._receptors.update_cells()
         self._insert_receptors.update_cells()
