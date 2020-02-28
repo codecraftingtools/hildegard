@@ -67,25 +67,23 @@ class Grid:
             for cell in row:
                 cell.sensitive = sensitive
         
-    def get_cell_under_mouse(self):
-        r, c = None, None
-        for ri, row in enumerate(self._cells):
-            for ci, cell in enumerate(row):
-                if cell.isUnderMouse():
-                    return ri, ci
-        return r, c
-    
-    def highlight_sensitive_cell_under_mouse(self):
+    def get_sensitive_cell_under_mouse(self, highlight=False):
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
                 if cell.isVisible() and cell.isUnderMouse() and cell.sensitive:
-                    cell.setBrush(QBrush(Qt.green));
-                    cell.setOpacity(0.5)
                     r, c = ri, ci
+                    if highlight:
+                        cell.setBrush(QBrush(Qt.green));
+                        cell.setOpacity(0.5)
+                    else:
+                        return r, c
                 else:
                     self._reset_appearance(cell)
         return r, c
+    
+    def highlight_sensitive_cell_under_mouse(self):
+        return self.get_sensitive_cell_under_mouse(highlight=True)
     
     def update_cells(self, extra_rows=0):
         parent_r = self._parent_item.rect()

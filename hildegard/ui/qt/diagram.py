@@ -194,7 +194,7 @@ class Block_Item(QGraphicsRectItem):
         
     def mousePressEvent(self, event):
         if self._editing and event.button() == Qt.RightButton:
-            r, c = self._receptors.get_cell_under_mouse()
+            r, c = self._receptors.get_sensitive_cell_under_mouse()
             if r is not None:
                 # Note that this connector should really be associated
                 # with some port on this block's component, but that
