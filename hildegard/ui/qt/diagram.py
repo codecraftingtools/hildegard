@@ -11,11 +11,33 @@ from qtpy.QtWidgets import (
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem
 )
 
+class Connector_Title(QGraphicsTextItem):
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_Left:
+            cursor = self.textCursor()
+            cursor.movePosition(cursor.Left)
+            self.setTextCursor(cursor)
+        elif key == Qt.Key_Right:
+            cursor = self.textCursor()
+            cursor.movePosition(cursor.Right)
+            self.setTextCursor(cursor)
+        super().keyPressEvent(event)
+        
+    def mouseDoubleClickEvent(self, event):
+        self.setTextInteractionFlags(Qt.NoTextInteraction)
+        super().mouseDoubleClickEvent(event)
+
+    def focusOutEvent(self, event):
+        self.setTextInteractionFlags(Qt.NoTextInteraction)
+        self.parentItem()._connector.name = self.toPlainText()
+        super().focusOutEvent(event)
+        
 class Connector_Item(QGraphicsRectItem):
     def __init__(self, connector, parent_item=None, debug=False):
         self._connector = connector
         self._debug = debug
-        self._title = QGraphicsTextItem(self._connector.name)
+        self._title = Connector_Title(self._connector.name)
         title_br = self._title.boundingRect()
         super().__init__(0, 0, title_br.width(), title_br.height())
         self._title.setParentItem(self)
@@ -30,6 +52,12 @@ class Connector_Item(QGraphicsRectItem):
             self.setPen(QPen(Qt.NoPen))
         self.setBrush(QBrush(Qt.NoBrush))
 
+    def mouseDoubleClickEvent(self, event):
+        if self.flags() & self.ItemIsMovable:
+            self._title.setTextInteractionFlags(Qt.TextEditable)
+            self._title.setFocus()
+        super().mouseDoubleClickEvent(event)
+            
     def mousePressEvent(self, event):
         if self.flags() & self.ItemIsMovable:
             self.setPen(QPen(Qt.black))
