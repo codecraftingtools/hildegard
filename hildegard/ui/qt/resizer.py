@@ -35,7 +35,7 @@ class Resizer_Handle(QGraphicsRectItem):
         self._debug = debug
         
         self._border = 10
-        self._side = 40
+        self._side = 30
         self._last_mouse_scene_pos = None
         self._last_parent_rect = None
         self._last_parent_pos = None
@@ -115,8 +115,8 @@ class Resizer_Handle(QGraphicsRectItem):
         min_delta_p_y = None
         max_delta_p_y = None        
 
-        min_width = max(self._resizer.min_width, 3*self._side)
-        min_height = max(self._resizer.min_height, 3*self._side)
+        min_width = max(self._resizer.min_width, 2*self._side)
+        min_height = max(self._resizer.min_height, 2*self._side)
         
         if self._anchor in ["BR", "TR", "R"]:
             min_delta_p_x = -(self._last_parent_rect.width() - min_width)

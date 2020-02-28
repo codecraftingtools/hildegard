@@ -58,7 +58,14 @@ def main(args=None):
                     )),
                 )
             )),
-            ("SC2", Block(instance=h1.subcomponents["Sub2"])),
+            ("SC2", Block(
+                instance=h1.subcomponents["Sub2"],
+                connectors=(
+                    ("Connector 1", Connector(
+                        port=if1.ports["Port 1"], row=0,
+                    )),
+                )
+            )),
         )
     )
     env.open(d1)
