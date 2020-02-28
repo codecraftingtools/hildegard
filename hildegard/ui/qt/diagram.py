@@ -51,7 +51,9 @@ class Block_Item(QGraphicsRectItem):
     def __init__(self, block, debug=False):
         self._block = block
         self._debug = debug
-        
+
+        self._base_zvalue = None
+        self._top_zvalue = 1
         self._vpad = 5
         self._footer_height = self._vpad
         self._editing = False
@@ -64,7 +66,6 @@ class Block_Item(QGraphicsRectItem):
         t = self._title = QGraphicsTextItem(self._block.name)
         t.setParentItem(self)
         t.setPos(0, self._vpad)
-        #t.setZValue(1)
         text_height = t.boundingRect().height()
         
         self._row_height = text_height
@@ -163,9 +164,12 @@ class Block_Item(QGraphicsRectItem):
         self._editing = not self._editing
         self._resizer.resizing = self._editing
         if self._editing:
+            self._base_zvalue = self.zValue()
+            self.setZValue(self._top_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable)
         else:
+            self.setZValue(self._base_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable, False)
         self._do_update()
