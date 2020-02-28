@@ -54,6 +54,12 @@ class Grid:
             cell.setBrush(QBrush(Qt.NoBrush));
 
     def set_cell_sensitivity(self, r, c, sensitive):
+        # Add an extra row if required
+        if r >= len(self._cells):
+            if self._n_rows is not None:
+                raise Exception("cannot extend rows in receptor")
+            extra_rows = r - len(self._cells) + 1
+            self.update_cells(extra_rows=extra_rows)
         self._cells[r][c].sensitive = sensitive
         
     def set_all_cell_sensitivity(self, sensitive):
@@ -61,6 +67,14 @@ class Grid:
             for cell in row:
                 cell.sensitive = sensitive
         
+    def get_cell_under_mouse(self):
+        r, c = None, None
+        for ri, row in enumerate(self._cells):
+            for ci, cell in enumerate(row):
+                if cell.isUnderMouse():
+                    return ri, ci
+        return r, c
+    
     def highlight_sensitive_cell_under_mouse(self):
         r, c = None, None
         for ri, row in enumerate(self._cells):
@@ -73,7 +87,7 @@ class Grid:
                     self._reset_appearance(cell)
         return r, c
     
-    def update_cells(self):
+    def update_cells(self, extra_rows=0):
         parent_r = self._parent_item.rect()
         h = parent_r.height() - self._top_border - self._bottom_border
         w = parent_r.width() - self._left_border - self._right_border
@@ -86,6 +100,8 @@ class Grid:
             if h_remaining >= self._cell_height:
                 max_rows = max_rows + 1
             n_rows = max_rows
+            if extra_rows:
+                n_rows = len(self._cells) + extra_rows
             cell_h = self._cell_height
             if self._stretch_last_row:
                 last_cell_h = h - (n_rows - 1)*v_interval

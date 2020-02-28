@@ -3,7 +3,7 @@
 from . import receptor
 from . import scene
 from .resizer import Rect_Resizer
-from ...diagram import Block
+from ...diagram import Block, Connector
 
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QPen
@@ -159,7 +159,6 @@ class Block_Item(QGraphicsRectItem):
         self._resizer = Rect_Resizer(self, debug=self._debug)
 
         self._ensure_minimum_size()
-        self._do_update()
 
     def handle_connector_start_move(self, connector, event):
         self._start_move_connector_row = connector._connector.row
@@ -192,7 +191,23 @@ class Block_Item(QGraphicsRectItem):
         #print(f"released {connector._connector.name} "
         #      f"({prev_r} {prev_c}): action: {action}")
         self._ensure_minimum_size()
-        self._do_update()
+        
+    def mousePressEvent(self, event):
+        if self._editing and event.button() == Qt.RightButton:
+            r, c = self._receptors.get_cell_under_mouse()
+            if r is not None:
+                # Note that this connector should really be associated
+                # with some port on this block's component, but that
+                # is not required at this time.
+                new_c = Connector(name="Untitled",row=r, col=c)
+                new_item = Connector_Item(
+                    new_c, parent_item=self._connector_layer, debug=self._debug)
+                new_item.setFlag(self.ItemIsMovable)
+                new_c.row = None
+                self._connectors.append(new_item)
+                self._move_connector_to(new_item, r, c)
+                self._ensure_minimum_size()
+        super().mousePressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
         self._editing = not self._editing
@@ -229,7 +244,7 @@ class Block_Item(QGraphicsRectItem):
         r = self.rect()
         r.setWidth(max(min_width,r.width()))
         r.setHeight(max(min_height,r.height()))
-        self.setRect(r)
+        self.setRect(r) # note that this calls _do_update()
         
     def _get_sorted_connectors(self):
         return sorted(
