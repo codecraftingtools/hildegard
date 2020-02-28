@@ -53,6 +53,7 @@ class Block_Item(QGraphicsRectItem):
         self._debug = debug
         
         self._vpad = 5
+        self._footer_height = self._vpad
         self._editing = False
         self._start_move_connector_row = None
         
@@ -98,7 +99,7 @@ class Block_Item(QGraphicsRectItem):
             parent_item=self._receptor_layer, n_cols=3,
             cell_height=self._row_height,
             top_border=self._header_height,
-            bottom_border=self._vpad,
+            bottom_border=self._footer_height,
             debug_color=Qt.cyan,
             debug=self._debug,
         )
@@ -122,6 +123,7 @@ class Block_Item(QGraphicsRectItem):
         
         self._resizer = Rect_Resizer(self, debug=self._debug)
 
+        self._ensure_minimum_size()
         self._do_update()
 
     def handle_connector_start_move(self, connector, event):
@@ -154,6 +156,7 @@ class Block_Item(QGraphicsRectItem):
                 action = f"aborted move"
         #print(f"released {connector._connector.name} "
         #      f"({prev_r} {prev_c}): action: {action}")
+        self._ensure_minimum_size()
         self._do_update()
         
     def mouseDoubleClickEvent(self, event):
@@ -167,6 +170,29 @@ class Block_Item(QGraphicsRectItem):
                 c.setFlag(self.ItemIsMovable, False)
         self._do_update()
 
+    def _ensure_minimum_size(self):
+        min_width = self._title.boundingRect().width()
+        min_height = self._header_height + self._footer_height
+
+        occupied_cols = self._get_occupied_cols()
+        occupied_rows = sorted(occupied_cols.keys())
+        for ri in occupied_rows:
+            min_row_w = 0
+            for ci in occupied_cols[ri]:
+                con = self._find_connector_at(ri, ci)
+                min_row_w = min_row_w + con.rect().width()
+            min_width = max(min_width, min_row_w)
+        if occupied_rows:
+            min_height = min_height + (max(occupied_rows) + 1)*self._row_height
+            
+        self._resizer.min_width = min_width
+        self._resizer.min_height = min_height
+        
+        r = self.rect()
+        r.setWidth(max(min_width,r.width()))
+        r.setHeight(max(min_height,r.height()))
+        self.setRect(r)
+        
     def _get_sorted_connectors(self):
         return sorted(
             self._connectors, key=lambda x:

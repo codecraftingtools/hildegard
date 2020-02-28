@@ -7,6 +7,8 @@ from qtpy.QtWidgets import QGraphicsRectItem
 class Rect_Resizer:
     def __init__(self, parent_item, resizing=False, debug=False):
         self.resizing = resizing
+        self.min_width = 0
+        self.min_height = 0
         self._handles = [
             Resizer_Handle(self, parent_item, "BR", False, debug),
             Resizer_Handle(self, parent_item, "BR", True,  debug),
@@ -113,17 +115,20 @@ class Resizer_Handle(QGraphicsRectItem):
         min_delta_p_y = None
         max_delta_p_y = None        
 
+        min_width = max(self._resizer.min_width, 3*self._side)
+        min_height = max(self._resizer.min_height, 3*self._side)
+        
         if self._anchor in ["BR", "TR", "R"]:
-            min_delta_p_x = -(self._last_parent_rect.width() - 3*self._side)
+            min_delta_p_x = -(self._last_parent_rect.width() - min_width)
         elif self._anchor in ["BL", "TL", "L"]:
-            max_delta_p_x = self._last_parent_rect.width() - 3*self._side
+            max_delta_p_x = self._last_parent_rect.width() - min_width
         elif self._anchor in ["B", "T"]:
             min_delta_p_x = 0
             max_delta_p_x = 0
         if self._anchor in ["BR", "BL", "B"]:
-            min_delta_p_y = -(self._last_parent_rect.height() - 3*self._side)
+            min_delta_p_y = -(self._last_parent_rect.height() - min_height)
         elif self._anchor in ["TR", "TL", "T"]:
-            max_delta_p_y = self._last_parent_rect.height() - 3*self._side
+            max_delta_p_y = self._last_parent_rect.height() - min_height
         elif self._anchor in ["R", "L"]:
             min_delta_p_y = 0
             max_delta_p_y = 0
