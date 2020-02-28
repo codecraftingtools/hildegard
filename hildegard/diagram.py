@@ -8,6 +8,7 @@ class Connector(View):
     _attributes = (
         Attribute("subject", component.Port, alias="port"),
         Attribute("row", int),
+        Attribute("col", int, default=1),
     )
 
 class Symbol(View):

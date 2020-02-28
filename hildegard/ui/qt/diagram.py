@@ -138,20 +138,23 @@ class Block_Item(QGraphicsRectItem):
 
     def handle_connector_end_move(self, connector, event):
         action = None
+        prev_r = self._start_move_connector_row
+        prev_c = connector._connector.col
         r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
-        if r is not None:
+        if r is not None: # Insert extra row
             action = f"insert at {r} {c}"
-            self._insert_connector_at(connector, r)
+            self._insert_connector_at(connector, r, c)
         else:
             r, c = self._receptors.highlight_sensitive_cell_under_mouse()
-            if r is not None:
+            if r is not None: # Move to open row
                 action = f"move to {r} {c}"
                 connector._connector.row = r
-            else:
+                connector._connector.col = c
+            else: # Aborted move
                 connector._connector.row = self._start_move_connector_row
                 action = f"aborted move"
         print(f"released {connector._connector.name} "
-              f"({connector._connector.row}): action: {action}")
+              f"({prev_r} {prev_c}): action: {action}")
         self._do_update()
         
     def mouseDoubleClickEvent(self, event):
@@ -171,7 +174,7 @@ class Block_Item(QGraphicsRectItem):
             x._connector.row if x._connector.row is not None
             else -10)
 
-    def _insert_connector_at(self, connector, index):
+    def _insert_connector_at(self, connector, row, col):
         sorted_connectors = self._get_sorted_connectors()
         last_r = -1
         for c in sorted_connectors:
@@ -179,8 +182,8 @@ class Block_Item(QGraphicsRectItem):
             if r is None:
                 # This connector is being moved, so disregard it
                 continue
-            # For existing rows on or after the insert index
-            if r >= index:
+            # For existing rows on or after the insert row index
+            if r >= row:
                 # If there is a gap
                 if r - last_r > 1:
                     # Stop shifting the rows down
@@ -188,7 +191,8 @@ class Block_Item(QGraphicsRectItem):
                 # Shift the row down
                 c._connector.row = r + 1
             last_r = r
-        connector._connector.row = index
+        connector._connector.row = row
+        connector._connector.col = col
         
     def _update_sensitivity(self):
         self._insert_receptors.set_all_cell_sensitivity(False)
@@ -235,9 +239,16 @@ class Block_Item(QGraphicsRectItem):
         self._title_rect.setRect(tor)
 
         for c in self._connectors:
-            i = c._connector.row
-            if i is not None:
-                c.setPos(0, self._header_height + i*self._row_height)
+            ri = c._connector.row
+            ci = c._connector.col
+            if ri is not None:
+                if ci == 0:
+                    x = 0
+                elif ci == 2:
+                    x = w - c.rect().width()
+                else:
+                    x = (w - c.rect().width())/2.0
+                c.setPos(x, self._header_height + ri*self._row_height)
             
         self._receptors.update_cells()
         self._insert_receptors.update_cells()
