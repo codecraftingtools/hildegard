@@ -31,12 +31,16 @@ class Connector_Title(QGraphicsTextItem):
         super().mouseDoubleClickEvent(event)
 
     def focusOutEvent(self, event):
+        cursor = self.textCursor()
+        cursor.clearSelection()
+        self.setTextCursor(cursor)
         self.setTextInteractionFlags(Qt.NoTextInteraction)
         self.parentItem()._connector.name = self.toPlainText()
         r = self.parentItem().rect()
         r.setWidth(self.boundingRect().width())
         self.parentItem().setRect(r)
         self.parentItem().parentItem().parentItem()._ensure_minimum_size()
+        self.parentItem().parentItem().parentItem().setFocus()
         super().focusOutEvent(event)
         
 class Connector_Item(QGraphicsRectItem):
@@ -63,6 +67,9 @@ class Connector_Item(QGraphicsRectItem):
             event.button() == Qt.LeftButton):
             self._title.setTextInteractionFlags(Qt.TextEditable)
             self._title.setFocus()
+            cursor = self._title.textCursor()
+            cursor.select(cursor.LineUnderCursor)
+            self._title.setTextCursor(cursor)
         super().mouseDoubleClickEvent(event)
             
     def mousePressEvent(self, event):
@@ -75,8 +82,7 @@ class Connector_Item(QGraphicsRectItem):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if ((self.flags() & self.ItemIsMovable) and
-            event.button() == Qt.LeftButton):
+        if self.flags() & self.ItemIsMovable:
             self.parentItem().parentItem().handle_connector_move(self, event)
         super().mouseMoveEvent(event)
 
@@ -103,6 +109,7 @@ class Block_Item(QGraphicsRectItem):
         super().__init__(0, 0, 120, 200)
         self.setBrush(QBrush(Qt.gray))
         self.setFlag(self.ItemIsMovable)
+        self.setFlag(self.ItemIsFocusable)
         
         t = self._title = QGraphicsTextItem(self._block.name)
         t.setParentItem(self)
@@ -205,36 +212,49 @@ class Block_Item(QGraphicsRectItem):
         self._insert_receptors.reset_appearance()        
         self._ensure_minimum_size()
         
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self._editing:
+                # See if we are at an open location for a connector
+                self._update_receptor_sensitivities()
+                r, c = self._receptors.get_sensitive_cell_under_mouse()
+                if r is None:
+                    self._set_editing_mode(False)
+                else:
+                    # Note that this connector should really be associated
+                    # with some port on this block's component, but that
+                    # is not required at this time.
+                    new_c = Connector(name="Untitled",row=r, col=c)
+                    new_item = Connector_Item(
+                        new_c, parent_item=self._connector_layer,
+                        debug=self._debug)
+                    new_item.setFlag(self.ItemIsMovable)
+                    new_c.row = None
+                    self._connectors.append(new_item)
+                    self._move_connector_to(new_item, r, c)
+                    self._ensure_minimum_size()
+                    # Start editing connector title immediately
+                    new_item._title.setTextInteractionFlags(Qt.TextEditable)
+                    new_item._title.setFocus()
+                    cursor = new_item._title.textCursor()
+                    cursor.select(cursor.LineUnderCursor)
+                    new_item._title.setTextCursor(cursor)
+            else:
+                self._set_editing_mode(True)
+        super().mouseDoubleClickEvent(event)
+        
     def mousePressEvent(self, event):
-        if self._editing and event.button() == Qt.RightButton:
-            self._update_receptor_sensitivities()
-            r, c = self._receptors.get_sensitive_cell_under_mouse()
-            if r is not None:
-                # Note that this connector should really be associated
-                # with some port on this block's component, but that
-                # is not required at this time.
-                new_c = Connector(name="Untitled",row=r, col=c)
-                new_item = Connector_Item(
-                    new_c, parent_item=self._connector_layer, debug=self._debug)
-                new_item.setFlag(self.ItemIsMovable)
-                new_c.row = None
-                self._connectors.append(new_item)
-                self._move_connector_to(new_item, r, c)
-                self._ensure_minimum_size()
         self.parentItem().mouse_pressed_in(self)
         super().mousePressEvent(event)
 
     def mouse_pressed_outside_item(self):
         self._set_editing_mode(False)
         
-    def mouseDoubleClickEvent(self, event):
-        self._set_editing_mode(not self._editing)
-        super().mouseDoubleClickEvent(event)
-        
     def _set_editing_mode(self, editing):
         self._editing = editing
         self._resizer.set_resizing_mode(self._editing)
         if self._editing:
+            self.setFocus()
             self.setPen(QPen(Qt.red,2))
             self._title_rect.setPen(QPen(Qt.red,2))
             self._base_zvalue = self.zValue()
