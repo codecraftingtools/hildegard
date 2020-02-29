@@ -218,9 +218,7 @@ class Block_Item(QGraphicsRectItem):
                 # See if we are at an open location for a connector
                 self._update_receptor_sensitivities()
                 r, c = self._receptors.get_sensitive_cell_under_mouse()
-                if r is None:
-                    self._set_editing_mode(False)
-                else:
+                if r is not None:
                     # Note that this connector should really be associated
                     # with some port on this block's component, but that
                     # is not required at this time.
@@ -240,7 +238,8 @@ class Block_Item(QGraphicsRectItem):
                     cursor.select(cursor.LineUnderCursor)
                     new_item._title.setTextCursor(cursor)
             else:
-                self._set_editing_mode(True)
+                if self._title_rect.contains(event.pos()):
+                    self._set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
