@@ -4,7 +4,8 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import QGraphicsRectItem
 
-class Receptor(QGraphicsRectItem):
+class Cell(QGraphicsRectItem):
+    # Receptor cell that can be used to indicate valid target area.
     def __init__(self, parent_item=None, width=10, height=10, sensitive=True):
         super().__init__(0, 0, width, height)
         if parent_item:
@@ -12,6 +13,8 @@ class Receptor(QGraphicsRectItem):
         self.sensitive = sensitive
         
 class Grid:
+    # Grid of receptor cells that dynamically changes to cover the
+    # area of a QGraphicsRectItem.
     def __init__(
             self, parent_item, n_rows=None, n_cols=None,
             cell_size=None, cell_width=None, cell_height=None,
@@ -41,10 +44,13 @@ class Grid:
         self._debug_color = debug_color
         self._debug = debug
 
+        self._current_n_rows = 0
+        self._current_n_cols = 0
+        
         self._cells = []
-        self.update_cells()
+        self.update_geometry()
 
-    def _reset_appearance(self, cell):
+    def _reset_appearance_of_cell(self, cell):
         cell.setOpacity(0.2)
         if self._debug and self._debug_color:
             cell.setPen(QPen(Qt.black));
@@ -53,21 +59,39 @@ class Grid:
             cell.setPen(QPen(Qt.NoPen));
             cell.setBrush(QBrush(Qt.NoBrush));
 
+    def get_num_visible_rows(self):
+        # Return the number of receptor grid cell rows that are
+        # currently visible.  This should be called after
+        # update_geometry() has computed the visiblility of cells.
+        for ri, row in enumerate(self._cells):
+            if not row or not row[0].isVisible():
+                return ri
+        return len(self._cells)
+        
     def set_cell_sensitivity(self, r, c, sensitive):
-        # Add an extra row if required
+        # Set the sensitivity of a specific receptor grid cell to the
+        # specified value (True or False).  If the row index is beyond
+        # the range of the current cell grid, rows are added as
+        # required if the number of rows is dynamic.
         if r >= len(self._cells):
             if self._n_rows is not None:
-                raise Exception("cannot extend rows in receptor")
+                raise Exception("cannot extend rows in receptor grid")
             extra_rows = r - len(self._cells) + 1
-            self.update_cells(extra_rows=extra_rows)
+            self.update_geometry(extra_rows=extra_rows)
         self._cells[r][c].sensitive = sensitive
         
-    def set_all_cell_sensitivity(self, sensitive):
+    def set_all_cell_sensitivities(self, sensitive):
+        # Set the sensitivity of all receptor grid cells to the
+        # specified value (True or False).
         for row in self._cells:
             for cell in row:
                 cell.sensitive = sensitive
         
     def get_sensitive_cell_under_mouse(self, highlight=False):
+        # Locate the the receptor grid cell under the mouse cursor (if
+        # any) and return the row, column index pair if that cell is
+        # currently in the sensitive state.  None, None is returned if
+        # no sensitive cell is currently under the mouse cursor.
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
@@ -79,13 +103,36 @@ class Grid:
                     else:
                         return r, c
                 else:
-                    self._reset_appearance(cell)
+                    self._reset_appearance_of_cell(cell)
         return r, c
     
     def highlight_sensitive_cell_under_mouse(self):
+        # Highlight the the receptor grid cell under the mouse cursor
+        # (if any) and return the row, column index pair if that cell
+        # is currently in the sensitive state.  The appearance of the
+        # other cells is also reset.  None, None is returned if no
+        # sensitive cell is currently under the mouse cursor.
         return self.get_sensitive_cell_under_mouse(highlight=True)
     
-    def update_cells(self, extra_rows=0):
+    def reset_appearance(self):
+        # Reset the appearance of the receptor grid cells, removing
+        # any highlighting effects, if present.
+        for ri, row in enumerate(self._cells):
+            for ci, cell in enumerate(row):
+                if (ri < self._current_n_rows and
+                    ci < self._current_n_cols) :
+                    self._reset_appearance_of_cell(cell)
+                    
+    def update_geometry(self, extra_rows=0):
+        # Update the width, height, position, and visibility of the
+        # receptor grid cells.  New cells are added to the grid if the
+        # current ones are insufficient to cover the parent
+        # QGraphicsRectItem and existing cells are hidden if they are
+        # outside the bounds of the parent rectangle.  This method
+        # should be called whenever the parent item is resized.  The
+        # optional extra_rows argument is used internally to expand
+        # the grid array to cover additonal area beyond the currently
+        # experienced maximum bounds of the parent item.        
         parent_r = self._parent_item.rect()
         h = parent_r.height() - self._top_border - self._bottom_border
         w = parent_r.width() - self._left_border - self._right_border
@@ -137,9 +184,10 @@ class Grid:
             row = self._cells[ri]
             for ci in range(n_cols):
                 if ci >= len(row):
-                    r = Receptor(
+                    r = Cell(
                         parent_item=self._parent_item,
                         sensitive=self._sensitive)
+                    self._reset_appearance_of_cell(r)
                     row.append(r)
                 cell = row[ci]
                 cell_r = cell.rect()
@@ -161,5 +209,8 @@ class Grid:
                 if ri >= n_rows or ci >= n_cols :
                     cell.hide()
                 else:
-                    self._reset_appearance(cell)
                     cell.show()
+                    
+        # Save n_rows and n_cols for use by other member functions
+        self._current_n_rows = n_rows
+        self._current_n_cols = n_cols

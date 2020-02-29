@@ -2,7 +2,7 @@
 
 from . import receptor
 from . import scene
-from .resizer import Rect_Resizer
+from . import resizer
 from ...diagram import Block, Connector
 
 from qtpy.QtCore import QRectF, Qt
@@ -135,6 +135,7 @@ class Block_Item(QGraphicsRectItem):
             cell_height=self._row_height,
             top_border=self._header_height,
             bottom_border=self._footer_height,
+            sensitive=False,
             debug_color=Qt.cyan,
             debug=self._debug,
         )
@@ -156,32 +157,35 @@ class Block_Item(QGraphicsRectItem):
             debug=self._debug,
         )
         
-        self._resizer = Rect_Resizer(self, debug=self._debug)
+        self._resizer = resizer.Frame(self, debug=self._debug)
 
         self._ensure_minimum_size()
+        self._set_editing_mode(self._editing)
 
     def handle_connector_start_move(self, connector, event):
         self._start_move_connector_row = connector._connector.row
         connector._connector.row = None
-        self._update_sensitivity()
+        self._update_receptor_sensitivities()
         
     def handle_connector_move(self, connector, event):
         r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
         if r is None:
             self._receptors.highlight_sensitive_cell_under_mouse()
         else:
-            self._receptors.update_cells()
+            # Reset the appearance of the selected standard receptor,
+            # if a sensitive insert receptor is highlighted.
+            self._receptors.reset_appearance()
 
     def handle_connector_end_move(self, connector, event):
         action = None
         prev_r = self._start_move_connector_row
         prev_c = connector._connector.col
-        r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
+        r, c = self._insert_receptors.get_sensitive_cell_under_mouse()
         if r is not None: # Insert extra row
             action = f"insert at {r} {c}"
             self._insert_connector_at(connector, r, c)
         else:
-            r, c = self._receptors.highlight_sensitive_cell_under_mouse()
+            r, c = self._receptors.get_sensitive_cell_under_mouse()
             if r is not None: # Move to open row
                 action = f"move to {r} {c}"
                 self._move_connector_to(connector, r, c)
@@ -190,10 +194,13 @@ class Block_Item(QGraphicsRectItem):
                 action = f"aborted move"
         #print(f"released {connector._connector.name} "
         #      f"({prev_r} {prev_c}): action: {action}")
+        self._receptors.reset_appearance()
+        self._insert_receptors.reset_appearance()        
         self._ensure_minimum_size()
         
     def mousePressEvent(self, event):
         if self._editing and event.button() == Qt.RightButton:
+            self._update_receptor_sensitivities()
             r, c = self._receptors.get_sensitive_cell_under_mouse()
             if r is not None:
                 # Note that this connector should really be associated
@@ -210,19 +217,26 @@ class Block_Item(QGraphicsRectItem):
         super().mousePressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
-        self._editing = not self._editing
-        self._resizer.resizing = self._editing
+        self._set_editing_mode(not self._editing)
+
+    def _set_editing_mode(self, editing):
+        self._editing = editing
+        self._resizer.set_resizing_mode(self._editing)
         if self._editing:
+            self.setPen(QPen(Qt.red,2))
+            self._title_rect.setPen(QPen(Qt.red,2))
             self._base_zvalue = self.zValue()
             self.setZValue(self._top_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable)
         else:
-            self.setZValue(self._base_zvalue)
+            self.setPen(QPen(Qt.black,2))
+            self._title_rect.setPen(QPen(Qt.black,2))
+            if self._base_zvalue is not None:
+                self.setZValue(self._base_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable, False)
-        self._do_update()
-
+        
     def _ensure_minimum_size(self):
         min_width = self._title.boundingRect().width()
         min_height = self._header_height + self._footer_height
@@ -244,7 +258,7 @@ class Block_Item(QGraphicsRectItem):
         r = self.rect()
         r.setWidth(max(min_width,r.width()))
         r.setHeight(max(min_height,r.height()))
-        self.setRect(r) # note that this calls _do_update()
+        self.setRect(r) # note that this calls self._update_geometry()
         
     def _get_sorted_connectors(self):
         return sorted(
@@ -319,9 +333,9 @@ class Block_Item(QGraphicsRectItem):
         connector._connector.row = row
         connector._connector.col = col
         
-    def _update_sensitivity(self):
-        self._insert_receptors.set_all_cell_sensitivity(False)
-        self._receptors.set_all_cell_sensitivity(True)
+    def _update_receptor_sensitivities(self):
+        self._insert_receptors.set_all_cell_sensitivities(False)
+        self._receptors.set_all_cell_sensitivities(True)
 
         occupied_cols = self._get_occupied_cols()
             
@@ -346,17 +360,9 @@ class Block_Item(QGraphicsRectItem):
                 for cii in range(3):
                     self._insert_receptors.set_cell_sensitivity(ri, cii, True)
             last_ri = ri
-    
-    def _do_update(self):
-        self._update_sensitivity()
         
-        if self._editing:
-            self.setPen(QPen(Qt.red,2))
-            self._title_rect.setPen(QPen(Qt.red,2))
-        else:
-            self.setPen(QPen(Qt.black,2))
-            self._title_rect.setPen(QPen(Qt.black,2))
-        
+    def _update_geometry(self):
+                
         r = self.rect()
         self._connector_layer.setRect(r)
         self._receptor_layer.setRect(r)
@@ -381,21 +387,18 @@ class Block_Item(QGraphicsRectItem):
                     x = (w - c.rect().width())/2.0
                 c.setPos(x, self._header_height + ri*self._row_height)
             
-        self._receptors.update_cells()
-        self._insert_receptors.update_cells()
-        
-        self._resizer.update_handles()
+        self._receptors.update_geometry()
+        self._insert_receptors.update_geometry()
+        self._resizer.update_geometry()
 
     def setRect(self, r):
         super().setRect(r)
-        self._do_update()
+        self._update_geometry()
         
 class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
-        
-        self.view = view
-        
+        self.view = view        
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
             s_ui = Block_Item(s, debug=False)

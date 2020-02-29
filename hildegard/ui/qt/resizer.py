@@ -4,33 +4,42 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import QGraphicsRectItem
 
-class Rect_Resizer:
+class Frame:
     def __init__(self, parent_item, resizing=False, debug=False):
-        self.resizing = resizing
         self.min_width = 0
         self.min_height = 0
         self._handles = [
-            Resizer_Handle(self, parent_item, "BR", False, debug),
-            Resizer_Handle(self, parent_item, "BR", True,  debug),
-            Resizer_Handle(self, parent_item, "TR", False, debug),
-            Resizer_Handle(self, parent_item, "TR", True,  debug),
-            Resizer_Handle(self, parent_item, "BL", False, debug),
-            Resizer_Handle(self, parent_item, "BL", True,  debug),
-            Resizer_Handle(self, parent_item, "TL", False, debug),
-            Resizer_Handle(self, parent_item, "TL", True,  debug),
-            Resizer_Handle(self, parent_item, "B",  False, debug),
-            Resizer_Handle(self, parent_item, "T",  False, debug),
-            Resizer_Handle(self, parent_item, "L",  True,  debug),
-            Resizer_Handle(self, parent_item, "R",  True,  debug),
+            Handle(self, parent_item, "BR", False, debug),
+            Handle(self, parent_item, "BR", True,  debug),
+            Handle(self, parent_item, "TR", False, debug),
+            Handle(self, parent_item, "TR", True,  debug),
+            Handle(self, parent_item, "BL", False, debug),
+            Handle(self, parent_item, "BL", True,  debug),
+            Handle(self, parent_item, "TL", False, debug),
+            Handle(self, parent_item, "TL", True,  debug),
+            Handle(self, parent_item, "B",  False, debug),
+            Handle(self, parent_item, "T",  False, debug),
+            Handle(self, parent_item, "L",  True,  debug),
+            Handle(self, parent_item, "R",  True,  debug),
         ]
+        self.set_resizing_mode(resizing)
         
-    def update_handles(self):
+    def update_geometry(self):
+        # Update the resizer handle positions and sizes based on the
+        # geometry of the parent QGraphicsRectItem. This method should
+        # be called whenever the parent item is resized.
         for h in self._handles:
-            h.do_update()
+            h.update_geometry()
             
-class Resizer_Handle(QGraphicsRectItem):
-    def __init__(self, resizer, parent, anchor, vertical=False, debug=False):
-        self._resizer = resizer
+    def set_resizing_mode(self, resizing):
+        # Update the resizer handle appearance and movability based on
+        # the specified resizing state.
+        for h in self._handles:
+            h.set_resizing_mode(resizing)
+            
+class Handle(QGraphicsRectItem):
+    def __init__(self, frame, parent, anchor, vertical=False, debug=False):
+        self._frame = frame
         self._anchor = anchor
         self._debug = debug
         
@@ -57,9 +66,13 @@ class Resizer_Handle(QGraphicsRectItem):
         super().__init__(x, y, w, h)
         
         self.setParentItem(parent)
-        self.do_update()
+        self.update_geometry()
+        self.set_resizing_mode(False)
         
-    def do_update(self):
+    def update_geometry(self):
+        # Update the resizer handle positions and sizes based on the
+        # geometry of the parent QGraphicsRectItem. This method should
+        # be called whenever the parent item is resized.
         parent = self.parentItem()
 
         if self._anchor in ["BR", "TR", "R"]:
@@ -85,7 +98,10 @@ class Resizer_Handle(QGraphicsRectItem):
             r.setHeight(parent.rect().height() - 2*self._side)
             self.setRect(r)
             
-        if self._resizer.resizing:
+    def set_resizing_mode(self, resizing):
+        # Update the resizer handle appearance and movability based on
+        # the specified resizing state.
+        if resizing:
             if self._debug:
                 if self._anchor in ["B", "T", "R", "L"]:
                     self.setBrush(QBrush(Qt.NoBrush))
@@ -115,8 +131,8 @@ class Resizer_Handle(QGraphicsRectItem):
         min_delta_p_y = None
         max_delta_p_y = None        
 
-        min_width = max(self._resizer.min_width, 2*self._side)
-        min_height = max(self._resizer.min_height, 2*self._side)
+        min_width = max(self._frame.min_width, 2*self._side)
+        min_height = max(self._frame.min_height, 2*self._side)
         
         if self._anchor in ["BR", "TR", "R"]:
             min_delta_p_x = -(self._last_parent_rect.width() - min_width)
