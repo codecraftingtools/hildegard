@@ -94,13 +94,14 @@ class View(QGraphicsView):
 
     def keyPressEvent(self, event):
         key = event.key()
-        pos = self._get_viewport_center()
-        if key == Qt.Key_Plus or key == Qt.Key_Equal:
-            self._zoom(1 + self.key_zoom_increment, pos)
-        elif key == Qt.Key_Minus:
-            self._zoom(1 - self.key_zoom_increment, pos)
-        elif key == Qt.Key_0:
-            self.fit_all_in_view()
+        if event.modifiers() & Qt.ControlModifier:
+            pos = self._get_viewport_center()
+            if key == Qt.Key_Plus or key == Qt.Key_Equal:
+                self._zoom(1 + self.key_zoom_increment, pos)
+            elif key == Qt.Key_Minus:
+                self._zoom(1 - self.key_zoom_increment, pos)
+            elif key == Qt.Key_0:
+                self.fit_all_in_view()
         super().keyPressEvent(event)
 
     def _zoom(self, factor, pos=None):

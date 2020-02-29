@@ -87,6 +87,17 @@ class Grid:
             for cell in row:
                 cell.sensitive = sensitive
         
+    def get_cell_under_mouse(self, highlight=False):
+        # Locate the the receptor grid cell under the mouse cursor (if
+        # any) and return the row, column index pair.
+        r, c = None, None
+        for ri, row in enumerate(self._cells):
+            for ci, cell in enumerate(row):
+                if cell.isVisible() and cell.isUnderMouse():
+                    r, c = ri, ci
+                    return r, c
+        return r, c
+    
     def get_sensitive_cell_under_mouse(self, highlight=False):
         # Locate the the receptor grid cell under the mouse cursor (if
         # any) and return the row, column index pair if that cell is

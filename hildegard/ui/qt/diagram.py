@@ -250,6 +250,18 @@ class Block_Item(QGraphicsRectItem):
     def mouse_pressed_outside_item(self):
         self._set_editing_mode(False)
         
+    def keyPressEvent(self, event):
+        key = event.key()
+        if (key == Qt.Key_Delete or key == Qt.Key_D) and self._editing:
+            r, c = self._receptors.get_cell_under_mouse()
+            if r is not None:
+                conn = self._find_connector_at(r,c)
+                if conn:
+                    self._connectors.remove(conn)
+                    conn.setParentItem(None)
+                    self._update_geometry()
+        super().keyPressEvent(event)
+
     def _set_editing_mode(self, editing):
         self._editing = editing
         self._resizer.set_resizing_mode(self._editing)
