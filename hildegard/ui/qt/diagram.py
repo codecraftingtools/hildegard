@@ -59,13 +59,15 @@ class Connector_Item(QGraphicsRectItem):
         self.setBrush(QBrush(Qt.NoBrush))
 
     def mouseDoubleClickEvent(self, event):
-        if self.flags() & self.ItemIsMovable:
+        if ((self.flags() & self.ItemIsMovable) and
+            event.button() == Qt.LeftButton):
             self._title.setTextInteractionFlags(Qt.TextEditable)
             self._title.setFocus()
         super().mouseDoubleClickEvent(event)
             
     def mousePressEvent(self, event):
-        if self.flags() & self.ItemIsMovable:
+        if ((self.flags() & self.ItemIsMovable) and
+            event.button() == Qt.LeftButton):
             self.setPen(QPen(Qt.black))
             self.setBrush(QBrush(Qt.gray))
             self.parentItem().parentItem().handle_connector_start_move(
@@ -73,12 +75,17 @@ class Connector_Item(QGraphicsRectItem):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        self.parentItem().parentItem().handle_connector_move(self, event)
+        if ((self.flags() & self.ItemIsMovable) and
+            event.button() == Qt.LeftButton):
+            self.parentItem().parentItem().handle_connector_move(self, event)
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self._set_default_appearance()
-        self.parentItem().parentItem().handle_connector_end_move(self, event)
+        if ((self.flags() & self.ItemIsMovable) and
+            event.button() == Qt.LeftButton):
+            self._set_default_appearance()
+            self.parentItem().parentItem().handle_connector_end_move(
+                self, event)
         super().mouseReleaseEvent(event)
         
 class Block_Item(QGraphicsRectItem):
@@ -214,11 +221,16 @@ class Block_Item(QGraphicsRectItem):
                 self._connectors.append(new_item)
                 self._move_connector_to(new_item, r, c)
                 self._ensure_minimum_size()
+        self.parentItem().mouse_pressed_in(self)
         super().mousePressEvent(event)
+
+    def mouse_pressed_outside_item(self):
+        self._set_editing_mode(False)
         
     def mouseDoubleClickEvent(self, event):
         self._set_editing_mode(not self._editing)
-
+        super().mouseDoubleClickEvent(event)
+        
     def _set_editing_mode(self, editing):
         self._editing = editing
         self._resizer.set_resizing_mode(self._editing)
@@ -413,13 +425,22 @@ class Block_Item(QGraphicsRectItem):
 class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
-        self.view = view        
+        self.view = view
+        self.view_items = []
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
             s_ui = Block_Item(s, debug=False)
             s_ui.moveBy(200*i,0)
             s_ui.setParentItem(self)
+            self.view_items.append(s_ui)
 
+    # Allow diagram elements to know that the mouse was pressed
+    # outside of the element
+    def mouse_pressed_in(self, source_item):
+        for item in self.view_items:
+            if source_item != item:
+                item.mouse_pressed_outside_item()
+                
     # Implement pure virtual method
     def paint(self, *args, **kw):
         pass
@@ -430,6 +451,12 @@ class Diagram_Item(QGraphicsItem):
     
 class Diagram_Editor(scene.Window):
     def __init__(self, view):
-        ui = Diagram_Item(view)
-        super().__init__(ui)
+        self.view_item = Diagram_Item(view)
+        super().__init__(self.view_item)
         self.view = view
+        
+    def mousePressEvent(self, event):
+        # Allow diagram elements to know that the mouse was pressed
+        # outside of the element
+        self.view_item.mouse_pressed_in(None)
+        super().mousePressEvent(event)
