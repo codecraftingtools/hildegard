@@ -5,7 +5,7 @@ from qtpy.QtGui import QBrush, QPen
 from qtpy.QtWidgets import QGraphicsRectItem
 
 class Cell(QGraphicsRectItem):
-    # Receptor cell that can be used to indicate valid target area.
+    # Receptor cell that can be used to indicate a valid target area.
     def __init__(self, parent_item=None, width=10, height=10, sensitive=True):
         super().__init__(0, 0, width, height)
         if parent_item:

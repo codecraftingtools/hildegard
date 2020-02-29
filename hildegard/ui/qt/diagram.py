@@ -252,6 +252,9 @@ class Block_Item(QGraphicsRectItem):
         if occupied_rows:
             min_height = min_height + (max(occupied_rows) + 1)*self._row_height
             
+        # Add extra height to always allow inserting after last row
+        min_height = min_height + 4
+        
         self._resizer.min_width = min_width
         self._resizer.min_height = min_height
         
@@ -360,6 +363,18 @@ class Block_Item(QGraphicsRectItem):
                 for cii in range(3):
                     self._insert_receptors.set_cell_sensitivity(ri, cii, True)
             last_ri = ri
+
+        # If the last visible receptor row is occupied
+        last_visible_receptor_row_i = self._receptors.get_num_visible_rows() - 1
+        if last_visible_receptor_row_i == last_ri:
+            # If the following insert receptor is visible
+            last_visible_irow_i = \
+                self._insert_receptors.get_num_visible_rows() - 1
+            if last_visible_irow_i == last_ri + 1:
+                # Add insert receptors after the last row
+                for cii in range(3):
+                    self._insert_receptors.set_cell_sensitivity(
+                        last_ri + 1, cii, True)
         
     def _update_geometry(self):
                 
