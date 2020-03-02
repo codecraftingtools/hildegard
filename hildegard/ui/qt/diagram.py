@@ -23,7 +23,7 @@ class Connector_Title(QGraphicsTextItem):
             cursor.movePosition(cursor.Right)
             self.setTextCursor(cursor)
         elif key == Qt.Key_Escape:
-            self.clearFocus()
+            self.parentItem().setFocus()
         super().keyPressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
@@ -40,7 +40,6 @@ class Connector_Title(QGraphicsTextItem):
         r.setWidth(self.boundingRect().width())
         self.parentItem().setRect(r)
         self.parentItem().parentItem().parentItem()._ensure_minimum_size()
-        self.parentItem().parentItem().parentItem().setFocus()
         super().focusOutEvent(event)
         
 class Connector_Item(QGraphicsRectItem):
@@ -48,6 +47,7 @@ class Connector_Item(QGraphicsRectItem):
         self._connector = connector
         self._debug = debug
         self._title = Connector_Title(self._connector.name)
+        self._moved_since_click = False
         title_br = self._title.boundingRect()
         super().__init__(0, 0, title_br.width(), title_br.height())
         self._title.setParentItem(self)
@@ -62,6 +62,21 @@ class Connector_Item(QGraphicsRectItem):
             self.setPen(QPen(Qt.NoPen))
         self.setBrush(QBrush(Qt.NoBrush))
 
+    def focusInEvent(self, event):
+        self.setPen(QPen(Qt.black))
+        self.setBrush(QBrush(Qt.gray))
+        super().focusOutEvent(event)
+        
+    def focusOutEvent(self, event):
+        self._set_default_appearance()
+        super().focusOutEvent(event)
+        
+    def keyPressEvent(self, event):
+        key = event.key()
+        if (key == Qt.Key_Delete or key == Qt.Key_D):
+            self.parentItem().parentItem().remove_connector(self)
+        super().keyPressEvent(event)
+        
     def mouseDoubleClickEvent(self, event):
         if ((self.flags() & self.ItemIsMovable) and
             event.button() == Qt.LeftButton):
@@ -75,23 +90,25 @@ class Connector_Item(QGraphicsRectItem):
     def mousePressEvent(self, event):
         if ((self.flags() & self.ItemIsMovable) and
             event.button() == Qt.LeftButton):
-            self.setPen(QPen(Qt.black))
-            self.setBrush(QBrush(Qt.gray))
-            self.parentItem().parentItem().handle_connector_start_move(
-                self, event)
+            self._moved_since_click = False
+            self.parentItem().parentItem().handle_connector_start_move(self)
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self.flags() & self.ItemIsMovable:
-            self.parentItem().parentItem().handle_connector_move(self, event)
+            self._moved_since_click = True
+            self.parentItem().parentItem().handle_connector_move(self)
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if ((self.flags() & self.ItemIsMovable) and
             event.button() == Qt.LeftButton):
-            self._set_default_appearance()
+            if self._moved_since_click:
+                disregard = False
+            else:
+                disregard = True
             self.parentItem().parentItem().handle_connector_end_move(
-                self, event)
+                self, disregard=disregard)
         super().mouseReleaseEvent(event)
         
 class Block_Item(QGraphicsRectItem):
@@ -176,12 +193,12 @@ class Block_Item(QGraphicsRectItem):
         self._ensure_minimum_size()
         self._set_editing_mode(self._editing)
 
-    def handle_connector_start_move(self, connector, event):
+    def handle_connector_start_move(self, connector):
         self._start_move_connector_row = connector._connector.row
         connector._connector.row = None
         self._update_receptor_sensitivities()
         
-    def handle_connector_move(self, connector, event):
+    def handle_connector_move(self, connector):
         r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
         if r is None:
             self._receptors.highlight_sensitive_cell_under_mouse()
@@ -190,22 +207,26 @@ class Block_Item(QGraphicsRectItem):
             # if a sensitive insert receptor is highlighted.
             self._receptors.reset_appearance()
 
-    def handle_connector_end_move(self, connector, event):
+    def handle_connector_end_move(self, connector, disregard=False):
         action = None
         prev_r = self._start_move_connector_row
         prev_c = connector._connector.col
         r, c = self._insert_receptors.get_sensitive_cell_under_mouse()
-        if r is not None: # Insert extra row
-            action = f"insert at {r} {c}"
-            self._insert_connector_at(connector, r, c)
+        if disregard:
+            connector._connector.row = self._start_move_connector_row
+            action = f"no movement"
         else:
-            r, c = self._receptors.get_sensitive_cell_under_mouse()
-            if r is not None: # Move to open row
-                action = f"move to {r} {c}"
-                self._move_connector_to(connector, r, c)
-            else: # Aborted move
-                connector._connector.row = self._start_move_connector_row
-                action = f"aborted move"
+            if r is not None: # Insert extra row
+                action = f"insert at {r} {c}"
+                self._insert_connector_at(connector, r, c)
+            else:
+                r, c = self._receptors.get_sensitive_cell_under_mouse()
+                if r is not None: # Move to open row
+                    action = f"move to {r} {c}"
+                    self._move_connector_to(connector, r, c)
+                else: # Aborted move
+                    connector._connector.row = self._start_move_connector_row
+                    action = f"aborted move"
         #print(f"released {connector._connector.name} "
         #      f"({prev_r} {prev_c}): action: {action}")
         self._receptors.reset_appearance()
@@ -227,6 +248,7 @@ class Block_Item(QGraphicsRectItem):
                         new_c, parent_item=self._connector_layer,
                         debug=self._debug)
                     new_item.setFlag(self.ItemIsMovable)
+                    new_item.setFlag(self.ItemIsFocusable)
                     new_c.row = None
                     self._connectors.append(new_item)
                     self._move_connector_to(new_item, r, c)
@@ -248,19 +270,12 @@ class Block_Item(QGraphicsRectItem):
 
     def mouse_pressed_outside_item(self):
         self._set_editing_mode(False)
-        
-    def keyPressEvent(self, event):
-        key = event.key()
-        if (key == Qt.Key_Delete or key == Qt.Key_D) and self._editing:
-            r, c = self._receptors.get_cell_under_mouse()
-            if r is not None:
-                conn = self._find_connector_at(r,c)
-                if conn:
-                    self._connectors.remove(conn)
-                    conn.setParentItem(None)
-                    self._update_geometry()
-        super().keyPressEvent(event)
 
+    def remove_connector(self, connector):
+        self._connectors.remove(connector)
+        connector.setParentItem(None)
+        self._update_geometry()
+        
     def _set_editing_mode(self, editing):
         self._editing = editing
         self._resizer.set_resizing_mode(self._editing)
@@ -272,6 +287,7 @@ class Block_Item(QGraphicsRectItem):
             self.setZValue(self._top_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable)
+                c.setFlag(self.ItemIsFocusable)
         else:
             self.setPen(QPen(Qt.black,2))
             self._title_rect.setPen(QPen(Qt.black,2))
@@ -279,6 +295,7 @@ class Block_Item(QGraphicsRectItem):
                 self.setZValue(self._base_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable, False)
+                c.setFlag(self.ItemIsFocusable, False)
         
     def _ensure_minimum_size(self):
         min_width = self._title.boundingRect().width()
