@@ -262,6 +262,8 @@ class Block_Item(QGraphicsRectItem):
             else:
                 if self._title_rect.contains(event.pos()):
                     self._set_editing_mode(True)
+                else:
+                    self._set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
