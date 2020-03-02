@@ -111,7 +111,7 @@ class Grid:
         # currently in the sensitive state.  None, None is returned if
         # no sensitive cell is currently under the mouse cursor.
         return self.get_cell_under_mouse(
-            highlight=False, require_sensitive=True)
+            highlight=highlight, require_sensitive=True)
     
     def highlight_sensitive_cell_under_mouse(self):
         # Highlight the the receptor grid cell under the mouse cursor
