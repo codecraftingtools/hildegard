@@ -87,26 +87,14 @@ class Grid:
             for cell in row:
                 cell.sensitive = sensitive
         
-    def get_cell_under_mouse(self, highlight=False):
+    def get_cell_under_mouse(self, highlight=False, require_sensitive=False):
         # Locate the the receptor grid cell under the mouse cursor (if
         # any) and return the row, column index pair.
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
-                if cell.isVisible() and cell.isUnderMouse():
-                    r, c = ri, ci
-                    return r, c
-        return r, c
-    
-    def get_sensitive_cell_under_mouse(self, highlight=False):
-        # Locate the the receptor grid cell under the mouse cursor (if
-        # any) and return the row, column index pair if that cell is
-        # currently in the sensitive state.  None, None is returned if
-        # no sensitive cell is currently under the mouse cursor.
-        r, c = None, None
-        for ri, row in enumerate(self._cells):
-            for ci, cell in enumerate(row):
-                if cell.isVisible() and cell.isUnderMouse() and cell.sensitive:
+                if (cell.isVisible() and cell.isUnderMouse() and
+                    (cell.sensitive or not require_sensitive)):
                     r, c = ri, ci
                     if highlight:
                         cell.setBrush(QBrush(Qt.green));
@@ -116,6 +104,14 @@ class Grid:
                 else:
                     self._reset_appearance_of_cell(cell)
         return r, c
+        
+    def get_sensitive_cell_under_mouse(self, highlight=False):
+        # Locate the the receptor grid cell under the mouse cursor (if
+        # any) and return the row, column index pair if that cell is
+        # currently in the sensitive state.  None, None is returned if
+        # no sensitive cell is currently under the mouse cursor.
+        return self.get_cell_under_mouse(
+            highlight=False, require_sensitive=True)
     
     def highlight_sensitive_cell_under_mouse(self):
         # Highlight the the receptor grid cell under the mouse cursor
