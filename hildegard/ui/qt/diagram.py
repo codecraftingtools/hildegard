@@ -199,9 +199,10 @@ class Block_Item(QGraphicsRectItem):
         self._update_receptor_sensitivities()
         
     def handle_connector_move(self, connector):
-        r, c = self._insert_receptors.highlight_sensitive_cell_under_mouse()
+        pos = connector.rect().center() + connector.pos()
+        r, c = self._insert_receptors.highlight_sensitive_cell_at(pos)
         if r is None:
-            self._receptors.highlight_sensitive_cell_under_mouse()
+            self._receptors.highlight_sensitive_cell_at(pos)
         else:
             # Reset the appearance of the selected standard receptor,
             # if a sensitive insert receptor is highlighted.
@@ -211,7 +212,8 @@ class Block_Item(QGraphicsRectItem):
         action = None
         prev_r = self._start_move_connector_row
         prev_c = connector._connector.col
-        r, c = self._insert_receptors.get_sensitive_cell_under_mouse()
+        pos = connector.rect().center() + connector.pos()
+        r, c = self._insert_receptors.get_sensitive_cell_at(pos)
         if disregard:
             connector._connector.row = self._start_move_connector_row
             action = f"no movement"
@@ -220,7 +222,7 @@ class Block_Item(QGraphicsRectItem):
                 action = f"insert at {r} {c}"
                 self._insert_connector_at(connector, r, c)
             else:
-                r, c = self._receptors.get_sensitive_cell_under_mouse()
+                r, c = self._receptors.get_sensitive_cell_at(pos)
                 if r is not None: # Move to open row
                     action = f"move to {r} {c}"
                     self._move_connector_to(connector, r, c)

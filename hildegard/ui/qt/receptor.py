@@ -120,6 +120,32 @@ class Grid:
         # other cells is also reset.  None, None is returned if no
         # sensitive cell is currently under the mouse cursor.
         return self.get_sensitive_cell_under_mouse(highlight=True)
+
+    def get_cell_at(self, pos, highlight=False, require_sensitive=False):
+        # Locate the the receptor grid cell at the specified
+        # coordinates (if any) and return the row, column index pair.
+        r, c = None, None
+        for ri, row in enumerate(self._cells):
+            for ci, cell in enumerate(row):
+                if (cell.isVisible() and
+                    cell.contains(cell.mapFromParent(pos)) and
+                    (cell.sensitive or not require_sensitive)):
+                    r, c = ri, ci
+                    if highlight:
+                        cell.setBrush(QBrush(Qt.green));
+                        cell.setOpacity(0.5)
+                    else:
+                        return r, c
+                else:
+                    self._reset_appearance_of_cell(cell)
+        return r, c
+        
+    def highlight_sensitive_cell_at(self, pos):
+        return self.get_sensitive_cell_at(pos, highlight=True)
+
+    def get_sensitive_cell_at(self, pos, highlight=False):
+        return self.get_cell_at(
+            pos, highlight=highlight, require_sensitive=True)
     
     def reset_appearance(self):
         # Reset the appearance of the receptor grid cells, removing
