@@ -22,7 +22,7 @@ class Frame:
             Handle(self, parent_item, "L",  True,  debug),
             Handle(self, parent_item, "R",  True,  debug),
         ]
-        self.set_resizing_mode(resizing)
+        self.set_resizable(resizing)
         
     def update_geometry(self):
         # Update the resizer handle positions and sizes based on the
@@ -31,11 +31,11 @@ class Frame:
         for h in self._handles:
             h.update_geometry()
             
-    def set_resizing_mode(self, resizing):
+    def set_resizable(self, resizing):
         # Update the resizer handle appearance and movability based on
         # the specified resizing state.
         for h in self._handles:
-            h.set_resizing_mode(resizing)
+            h.set_resizable(resizing)
             
 class Handle(QGraphicsRectItem):
     def __init__(self, frame, parent, anchor, vertical=False, debug=False):
@@ -67,7 +67,7 @@ class Handle(QGraphicsRectItem):
         
         self.setParentItem(parent)
         self.update_geometry()
-        self.set_resizing_mode(False)
+        self.set_resizable(False)
         
     def update_geometry(self):
         # Update the resizer handle positions and sizes based on the
@@ -98,7 +98,7 @@ class Handle(QGraphicsRectItem):
             r.setHeight(parent.rect().height() - 2*self._side)
             self.setRect(r)
             
-    def set_resizing_mode(self, resizing):
+    def set_resizable(self, resizing):
         # Update the resizer handle appearance and movability based on
         # the specified resizing state.
         if resizing:

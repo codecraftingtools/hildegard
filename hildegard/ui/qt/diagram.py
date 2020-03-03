@@ -301,7 +301,7 @@ class Block_Item(QGraphicsRectItem):
         
     def _set_editing_mode(self, editing):
         self._editing = editing
-        self._resizer.set_resizing_mode(self._editing)
+        self._resizer.set_resizable(self._editing)
         if self._editing:
             self.setFocus()
             self.setPen(QPen(Qt.red,2))
