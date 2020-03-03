@@ -281,8 +281,11 @@ class Block_Item(QGraphicsRectItem):
                     self._ensure_minimum_size()
                     # Start editing connector title immediately
                     new_item._title.start_editing()
-                elif self._title_rect.contains(event.pos()):
+                elif self._title.boundingRect().contains(
+                        self._title.mapFromParent(event.pos())):
                     self._title.start_editing()
+                #elif self._title_rect.contains(event.pos()):
+                #    pass
             else:
                 self._set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
