@@ -3,7 +3,7 @@
 from . import receptor
 from . import scene
 from . import resizer
-from ...diagram import Block, Connector
+from ... import diagram
 
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QPen
@@ -11,7 +11,17 @@ from qtpy.QtWidgets import (
     QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem
 )
 
-class Connector_Title(QGraphicsTextItem):
+class Title(QGraphicsTextItem):
+    def start_editing(self):
+        self.setTextInteractionFlags(Qt.TextEditable)
+        self.setFocus()
+        cursor = self.textCursor()
+        cursor.select(cursor.LineUnderCursor)
+        self.setTextCursor(cursor)
+
+    def _stop_editing(self):
+        pass
+    
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Left:
@@ -23,11 +33,11 @@ class Connector_Title(QGraphicsTextItem):
             cursor.movePosition(cursor.Right)
             self.setTextCursor(cursor)
         elif key == Qt.Key_Escape:
-            self.parentItem().setFocus()
+            self._stop_editing()
         super().keyPressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
-        self.setTextInteractionFlags(Qt.NoTextInteraction)
+        self._stop_editing()
         super().mouseDoubleClickEvent(event)
 
     def focusOutEvent(self, event):
@@ -35,13 +45,29 @@ class Connector_Title(QGraphicsTextItem):
         cursor.clearSelection()
         self.setTextCursor(cursor)
         self.setTextInteractionFlags(Qt.NoTextInteraction)
+        super().focusOutEvent(event)
+
+class Connector_Title(Title):
+    def focusOutEvent(self, event):
         self.parentItem()._connector.name = self.toPlainText()
         r = self.parentItem().rect()
         r.setWidth(self.boundingRect().width())
         self.parentItem().setRect(r)
         self.parentItem().parentItem().parentItem()._ensure_minimum_size()
         super().focusOutEvent(event)
+
+    def _stop_editing(self):
+        self.parentItem().setFocus()
+
+class Block_Title(Title):
+    def focusOutEvent(self, event):
+        self.parentItem().parentItem()._block.name = self.toPlainText()
+        self.parentItem().parentItem()._ensure_minimum_size()
+        super().focusOutEvent(event)
         
+    def _stop_editing(self):
+        self.parentItem().parentItem().setFocus()
+
 class Connector_Item(QGraphicsRectItem):
     def __init__(self, connector, parent_item=None, debug=False):
         self._connector = connector
@@ -80,11 +106,7 @@ class Connector_Item(QGraphicsRectItem):
     def mouseDoubleClickEvent(self, event):
         if ((self.flags() & self.ItemIsMovable) and
             event.button() == Qt.LeftButton):
-            self._title.setTextInteractionFlags(Qt.TextEditable)
-            self._title.setFocus()
-            cursor = self._title.textCursor()
-            cursor.select(cursor.LineUnderCursor)
-            self._title.setTextCursor(cursor)
+            self._title.start_editing()
         super().mouseDoubleClickEvent(event)
             
     def mousePressEvent(self, event):
@@ -128,7 +150,7 @@ class Block_Item(QGraphicsRectItem):
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsFocusable)
         
-        t = self._title = QGraphicsTextItem(self._block.name)
+        t = self._title = Block_Title(self._block.name)
         t.setParentItem(self)
         t.setPos(0, self._vpad)
         text_height = t.boundingRect().height()
@@ -247,7 +269,7 @@ class Block_Item(QGraphicsRectItem):
                     # Note that this connector should really be associated
                     # with some port on this block's component, but that
                     # is not required at this time.
-                    new_c = Connector(name="Untitled",row=r, col=c)
+                    new_c = diagram.Connector(name="Untitled",row=r, col=c)
                     new_item = Connector_Item(
                         new_c, parent_item=self._connector_layer,
                         debug=self._debug)
@@ -258,16 +280,11 @@ class Block_Item(QGraphicsRectItem):
                     self._move_connector_to(new_item, r, c)
                     self._ensure_minimum_size()
                     # Start editing connector title immediately
-                    new_item._title.setTextInteractionFlags(Qt.TextEditable)
-                    new_item._title.setFocus()
-                    cursor = new_item._title.textCursor()
-                    cursor.select(cursor.LineUnderCursor)
-                    new_item._title.setTextCursor(cursor)
+                    new_item._title.start_editing()
+                elif self._title_rect.contains(event.pos()):
+                    self._title.start_editing()
             else:
-                if self._title_rect.contains(event.pos()):
-                    self._set_editing_mode(True)
-                else:
-                    self._set_editing_mode(True)
+                self._set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
