@@ -47,7 +47,7 @@ class Grid:
         self._cells = []
         self.update_geometry()
 
-    def _reset_appearance_of_cell(self, cell):
+    def _reset_appearance_of(self, cell):
         cell.setOpacity(0.2)
         if self._debug and self._debug_color:
             cell.setPen(QPen(Qt.black));
@@ -61,7 +61,7 @@ class Grid:
         # any highlighting effects, if present.
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
-                self._reset_appearance_of_cell(cell)
+                self._reset_appearance_of(cell)
                     
     def get_num_visible_rows(self):
         # Return the number of receptor grid cell rows that are
@@ -79,7 +79,7 @@ class Grid:
             for cell in row:
                 cell.sensitive = sensitive
         
-    def set_cell_sensitivity(self, r, c, sensitive):
+    def set_cell_sensitivity_at(self, r, c, sensitive):
         # Set the sensitivity of a specific receptor grid cell to the
         # specified value (True or False).  If the row index is beyond
         # the range of the current cell grid, rows are added as
@@ -91,20 +91,26 @@ class Grid:
             self.update_geometry(extra_rows=extra_rows)
         self._cells[r][c].sensitive = sensitive
         
-    def get_cell_at(self, pos, highlight=False, require_sensitive=False):
-        # Locate the the receptor grid cell at the specified
-        # coordinates (if any) and return the row, column index pair.
-        # If pos is None, the current mouse position is used.
+    def get_cell_at(self, pos=None, mouse=False, highlight=False,
+                    sensitive=False):
+        # Locate the the receptor grid cell at the specified parent
+        # coordinates (if any) and return the associated row, column
+        # index pair.  If mouse is True, the cell currently under the
+        # mouse cursor position is located instead of using pos.  If
+        # sensitive is True, the cell must be currently set to
+        # sensitive in order to be considered.  If highlight is True,
+        # the specified cell is highlighted and the highlighting of
+        # other cells is reset.
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
-                if pos is None:
+                if mouse:
                     cell_contains_pos = cell.isUnderMouse()
                 else:
                     cell_contains_pos = cell.contains(cell.mapFromParent(pos))
                 if (cell.isVisible() and
                     cell_contains_pos and
-                    (cell.sensitive or not require_sensitive)):
+                    (cell.sensitive or not sensitive)):
                     r, c = ri, ci
                     if highlight:
                         cell.setBrush(QBrush(Qt.green));
@@ -112,38 +118,10 @@ class Grid:
                     else:
                         return r, c
                 else:
-                    self._reset_appearance_of_cell(cell)
+                    if highlight:
+                        self._reset_appearance_of(cell)
         return r, c
-        
-    def get_sensitive_cell_at(self, pos, highlight=False):
-        return self.get_cell_at(
-            pos, highlight=highlight, require_sensitive=True)
     
-    def highlight_sensitive_cell_at(self, pos):
-        return self.get_sensitive_cell_at(pos, highlight=True)
-
-    def get_cell_under_mouse(self, highlight=False, require_sensitive=False):
-        # Locate the the receptor grid cell under the mouse cursor (if
-        # any) and return the row, column index pair.
-        return self.get_cell_at(
-            pos=None, highlight=highlight, require_sensitive=require_sensitive)
-        
-    def get_sensitive_cell_under_mouse(self, highlight=False):
-        # Locate the the receptor grid cell under the mouse cursor (if
-        # any) and return the row, column index pair if that cell is
-        # currently in the sensitive state.  None, None is returned if
-        # no sensitive cell is currently under the mouse cursor.
-        return self.get_cell_under_mouse(
-            highlight=highlight, require_sensitive=True)
-    
-    def highlight_sensitive_cell_under_mouse(self):
-        # Highlight the the receptor grid cell under the mouse cursor
-        # (if any) and return the row, column index pair if that cell
-        # is currently in the sensitive state.  The appearance of the
-        # other cells is also reset.  None, None is returned if no
-        # sensitive cell is currently under the mouse cursor.
-        return self.get_sensitive_cell_under_mouse(highlight=True)
-
     def update_geometry(self, extra_rows=0):
         # Update the width, height, position, and visibility of the
         # receptor grid cells.  New cells are added to the grid if the
@@ -208,7 +186,7 @@ class Grid:
                     r = Cell(
                         parent_item=self._parent_item,
                         sensitive=self._sensitive)
-                    self._reset_appearance_of_cell(r)
+                    self._reset_appearance_of(r)
                     row.append(r)
                 cell = row[ci]
                 cell_r = cell.rect()

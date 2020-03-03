@@ -200,9 +200,11 @@ class Block_Item(QGraphicsRectItem):
         
     def handle_connector_move(self, connector):
         pos = connector.rect().center() + connector.pos()
-        r, c = self._insert_receptors.highlight_sensitive_cell_at(pos)
+        r, c = self._insert_receptors.get_cell_at(
+            pos=pos, sensitive=True, highlight=True)
         if r is None:
-            self._receptors.highlight_sensitive_cell_at(pos)
+            self._receptors.get_cell_at(
+                pos=pos, sensitive=True, highlight=True)
         else:
             # Reset the appearance of the selected standard receptor,
             # if a sensitive insert receptor is highlighted.
@@ -213,7 +215,7 @@ class Block_Item(QGraphicsRectItem):
         prev_r = self._start_move_connector_row
         prev_c = connector._connector.col
         pos = connector.rect().center() + connector.pos()
-        r, c = self._insert_receptors.get_sensitive_cell_at(pos)
+        r, c = self._insert_receptors.get_cell_at(pos=pos, sensitive=True)
         if disregard:
             connector._connector.row = self._start_move_connector_row
             action = f"no movement"
@@ -222,7 +224,7 @@ class Block_Item(QGraphicsRectItem):
                 action = f"insert at {r} {c}"
                 self._insert_connector_at(connector, r, c)
             else:
-                r, c = self._receptors.get_sensitive_cell_at(pos)
+                r, c = self._receptors.get_cell_at(pos=pos, sensitive=True)
                 if r is not None: # Move to open row
                     action = f"move to {r} {c}"
                     self._move_connector_to(connector, r, c)
@@ -240,7 +242,7 @@ class Block_Item(QGraphicsRectItem):
             if self._editing:
                 # See if we are at an open location for a connector
                 self._update_receptor_sensitivities()
-                r, c = self._receptors.get_sensitive_cell_under_mouse()
+                r, c = self._receptors.get_cell_at(mouse=True, sensitive=True)
                 if r is not None:
                     # Note that this connector should really be associated
                     # with some port on this block's component, but that
@@ -417,15 +419,15 @@ class Block_Item(QGraphicsRectItem):
                 continue
             # Moving to populated locations is not permitted
             if ci in occupied_cols[ri]:
-                self._receptors.set_cell_sensitivity(ri, ci, False)
+                self._receptors.set_cell_sensitivity_at(ri, ci, False)
             # Moving to a cell in a row with two connectors is not permitted
             if len(occupied_cols[ri]) > 1:
-                self._receptors.set_cell_sensitivity(ri, 1, False)
+                self._receptors.set_cell_sensitivity_at(ri, 1, False)
             # If there is a gap between two consecutive rows
             if ri == last_ri + 1:
                 # Add insert receptors between the rows
                 for cii in range(3):
-                    self._insert_receptors.set_cell_sensitivity(ri, cii, True)
+                    self._insert_receptors.set_cell_sensitivity_at(ri, cii, True)
             last_ri = ri
 
         # If the last visible receptor row is occupied
@@ -437,7 +439,7 @@ class Block_Item(QGraphicsRectItem):
             if last_visible_irow_i == last_ri + 1:
                 # Add insert receptors after the last row
                 for cii in range(3):
-                    self._insert_receptors.set_cell_sensitivity(
+                    self._insert_receptors.set_cell_sensitivity_at(
                         last_ri + 1, cii, True)
         
     def _update_geometry(self):
