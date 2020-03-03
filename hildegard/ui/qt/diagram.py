@@ -21,6 +21,9 @@ class Title(QGraphicsTextItem):
 
     def _stop_editing(self):
         pass
+
+    def _set_text(self, name):
+        pass
     
     def keyPressEvent(self, event):
         key = event.key()
@@ -34,6 +37,8 @@ class Title(QGraphicsTextItem):
             self.setTextCursor(cursor)
         elif key == Qt.Key_Escape:
             self._stop_editing()
+        else:
+            self._set_text(self.toPlainText())
         super().keyPressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
@@ -41,6 +46,7 @@ class Title(QGraphicsTextItem):
         super().mouseDoubleClickEvent(event)
 
     def focusOutEvent(self, event):
+        self._set_text(self.toPlainText())
         cursor = self.textCursor()
         cursor.clearSelection()
         self.setTextCursor(cursor)
@@ -48,26 +54,24 @@ class Title(QGraphicsTextItem):
         super().focusOutEvent(event)
 
 class Connector_Title(Title):
-    def focusOutEvent(self, event):
-        self.parentItem()._connector.name = self.toPlainText()
+    def _stop_editing(self):
+        self.parentItem().setFocus()
+
+    def _set_text(self, name):
+        self.parentItem()._connector.name = name
         r = self.parentItem().rect()
         r.setWidth(self.boundingRect().width())
         self.parentItem().setRect(r)
         self.parentItem().parentItem().parentItem()._ensure_minimum_size()
-        super().focusOutEvent(event)
-
-    def _stop_editing(self):
-        self.parentItem().setFocus()
-
+    
 class Block_Title(Title):
-    def focusOutEvent(self, event):
-        self.parentItem().parentItem()._block.name = self.toPlainText()
-        self.parentItem().parentItem()._ensure_minimum_size()
-        super().focusOutEvent(event)
-        
     def _stop_editing(self):
         self.parentItem().parentItem().setFocus()
 
+    def _set_text(self, name):
+        self.parentItem().parentItem()._block.name = name
+        self.parentItem().parentItem()._ensure_minimum_size()
+        
 class Connector_Item(QGraphicsRectItem):
     def __init__(self, connector, parent_item=None, debug=False):
         self._connector = connector
