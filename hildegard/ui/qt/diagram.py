@@ -500,11 +500,15 @@ class Diagram_Item(QGraphicsItem):
         self.view_items = []
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
-            s_ui = Block_Item(s, debug=False)
+            s_ui = self.add_block(s, debug=False)
             s_ui.moveBy(200*i,0)
-            s_ui.setParentItem(self)
-            self.view_items.append(s_ui)
 
+    def add_block(self, block, debug=False):
+        s_ui = Block_Item(block, debug=debug)
+        s_ui.setParentItem(self)
+        self.view_items.append(s_ui)
+        return s_ui
+    
     # Allow diagram elements to know that the mouse was pressed
     # outside of the element
     def mouse_pressed_in(self, source_item):
@@ -531,3 +535,10 @@ class Diagram_Editor(scene.Window):
         # outside of the element
         self.view_item.mouse_pressed_in(None)
         super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            b = diagram.Block(name="Untitled")
+            b_item = self.view_item.add_block(b, debug=False)
+        super().mouseDoubleClickEvent(event)
+
