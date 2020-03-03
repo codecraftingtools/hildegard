@@ -44,9 +44,6 @@ class Grid:
         self._debug_color = debug_color
         self._debug = debug
 
-        self._current_n_rows = 0
-        self._current_n_cols = 0
-        
         self._cells = []
         self.update_geometry()
 
@@ -90,20 +87,8 @@ class Grid:
     def get_cell_under_mouse(self, highlight=False, require_sensitive=False):
         # Locate the the receptor grid cell under the mouse cursor (if
         # any) and return the row, column index pair.
-        r, c = None, None
-        for ri, row in enumerate(self._cells):
-            for ci, cell in enumerate(row):
-                if (cell.isVisible() and cell.isUnderMouse() and
-                    (cell.sensitive or not require_sensitive)):
-                    r, c = ri, ci
-                    if highlight:
-                        cell.setBrush(QBrush(Qt.green));
-                        cell.setOpacity(0.5)
-                    else:
-                        return r, c
-                else:
-                    self._reset_appearance_of_cell(cell)
-        return r, c
+        return self.get_cell_at(
+            pos=None, highlight=highlight, require_sensitive=require_sensitive)
         
     def get_sensitive_cell_under_mouse(self, highlight=False):
         # Locate the the receptor grid cell under the mouse cursor (if
@@ -124,11 +109,16 @@ class Grid:
     def get_cell_at(self, pos, highlight=False, require_sensitive=False):
         # Locate the the receptor grid cell at the specified
         # coordinates (if any) and return the row, column index pair.
+        # If pos is None, the current mouse position is used.
         r, c = None, None
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
+                if pos is None:
+                    cell_contains_pos = cell.isUnderMouse()
+                else:
+                    cell_contains_pos = cell.contains(cell.mapFromParent(pos))
                 if (cell.isVisible() and
-                    cell.contains(cell.mapFromParent(pos)) and
+                    cell_contains_pos and
                     (cell.sensitive or not require_sensitive)):
                     r, c = ri, ci
                     if highlight:
@@ -152,9 +142,7 @@ class Grid:
         # any highlighting effects, if present.
         for ri, row in enumerate(self._cells):
             for ci, cell in enumerate(row):
-                if (ri < self._current_n_rows and
-                    ci < self._current_n_cols) :
-                    self._reset_appearance_of_cell(cell)
+                self._reset_appearance_of_cell(cell)
                     
     def update_geometry(self, extra_rows=0):
         # Update the width, height, position, and visibility of the
@@ -243,7 +231,3 @@ class Grid:
                     cell.hide()
                 else:
                     cell.show()
-                    
-        # Save n_rows and n_cols for use by other member functions
-        self._current_n_rows = n_rows
-        self._current_n_cols = n_cols
