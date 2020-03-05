@@ -6,8 +6,10 @@ from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import QBoxLayout, QGraphicsScene, QGraphicsView, QWidget
 
 class Window(QWidget):
-    def __init__(self, ui):
+    def __init__(self, item):
         super().__init__()
+        
+        self.scene_item = item
         
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
 
@@ -21,9 +23,15 @@ class Window(QWidget):
         scene_view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(scene_view)
 
-        scene.addItem(ui)
+        scene.addItem(item)
             
         self.resize(800, 600)
+
+    def mousePressEvent(self, event):
+        # Allow scene item to know that the mouse was pressed outside
+        # of any item.
+        self.scene_item.mouse_pressed_in(None)
+        super().mousePressEvent(event)
 
 class View(QGraphicsView):
     def __init__(self, parent):

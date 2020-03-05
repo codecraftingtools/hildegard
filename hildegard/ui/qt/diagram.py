@@ -295,10 +295,12 @@ class Block_Item(QGraphicsRectItem):
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
-        self.parentItem().mouse_pressed_in(self)
+        parent_item = self.parentItem()
+        if parent_item:
+            parent_item.mouse_pressed_in(self)
         super().mousePressEvent(event)
 
-    def mouse_pressed_outside_item(self):
+    def mouse_pressed_in(self, source_item):
         self._set_editing_mode(False)
 
     def remove_connector(self, connector):
@@ -516,36 +518,29 @@ class Diagram_Item(QGraphicsItem):
         self.view_items.append(s_ui)
         return s_ui
     
-    # Allow diagram elements to know that the mouse was pressed
-    # outside of the element
     def mouse_pressed_in(self, source_item):
+        # Allow diagram elements to know that the mouse was pressed
+        # outside of the element.
         for item in self.view_items:
             if source_item != item:
-                item.mouse_pressed_outside_item()
+                item.mouse_pressed_in(source_item)
                 
-    # Implement pure virtual method
     def paint(self, *args, **kw):
+        # Implement pure virtual method
         pass
     
-    # Implement pure virtual method
     def boundingRect(self, *args, **kw):
+        # Implement pure virtual method
         return QRectF(0,0,0,0)
     
 class Diagram_Editor(scene.Window):
     def __init__(self, view):
-        self.view_item = Diagram_Item(view)
-        super().__init__(self.view_item)
+        super().__init__(Diagram_Item(view))
         self.view = view
         
-    def mousePressEvent(self, event):
-        # Allow diagram elements to know that the mouse was pressed
-        # outside of the element
-        self.view_item.mouse_pressed_in(None)
-        super().mousePressEvent(event)
-
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
             b = diagram.Block(name="Untitled")
-            b_item = self.view_item.add_block(b, debug=False)
+            b_item = self.scene_item.add_block(b, debug=False)
         super().mouseDoubleClickEvent(event)
 
