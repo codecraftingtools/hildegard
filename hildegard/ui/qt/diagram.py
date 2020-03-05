@@ -103,7 +103,7 @@ class Connector_Item(QGraphicsRectItem):
         
     def keyPressEvent(self, event):
         key = event.key()
-        if (key == Qt.Key_Delete or key == Qt.Key_D):
+        if (key == Qt.Key_Delete):
             self.parentItem().parentItem().remove_connector(self)
         super().keyPressEvent(event)
         
@@ -300,6 +300,14 @@ class Block_Item(QGraphicsRectItem):
             parent_item.mouse_pressed_in(self)
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        key = event.key()
+        if (key == Qt.Key_Delete):
+            parent_item = self.parentItem()
+            if parent_item:
+                parent_item.remove_block(self)
+        super().keyPressEvent(event)
+        
     def mouse_pressed_in(self, source_item):
         self._set_editing_mode(False)
 
@@ -506,7 +514,7 @@ class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
         self.view = view
-        self.view_items = []
+        self._block_items = []
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
             s_ui = self.add_block(s, debug=False)
@@ -515,13 +523,17 @@ class Diagram_Item(QGraphicsItem):
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
         s_ui.setParentItem(self)
-        self.view_items.append(s_ui)
+        self._block_items.append(s_ui)
         return s_ui
     
+    def remove_block(self, block):
+        self._block_items.remove(block)
+        block.setParentItem(None)
+        
     def mouse_pressed_in(self, source_item):
         # Allow diagram elements to know that the mouse was pressed
         # outside of the element.
-        for item in self.view_items:
+        for item in self._block_items:
             if source_item != item:
                 item.mouse_pressed_in(source_item)
                 
@@ -540,7 +552,12 @@ class Diagram_Editor(scene.Window):
         
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
+            # Note that this block should really be associated with
+            # some component, but that is not required at this time.
             b = diagram.Block(name="Untitled")
             b_item = self.scene_item.add_block(b, debug=False)
+            global_pos = event.globalPos()
+            view_pos = self.scene_view.mapFromGlobal(global_pos)
+            scene_pos = self.scene_view.mapToScene(view_pos)
+            b_item.setPos(b_item.mapFromScene(scene_pos))
         super().mouseDoubleClickEvent(event)
-
