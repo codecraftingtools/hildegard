@@ -54,6 +54,14 @@ class Title(QGraphicsTextItem):
         super().focusOutEvent(event)
 
 class Connector_Title(Title):
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        if not self.toPlainText():
+            connector_item = self.parentItem()
+            self.setParentItem(None)
+            connector_item.parentItem().parentItem().remove_connector(
+                connector_item)
+        
     def _stop_editing(self):
         self.parentItem().setFocus()
 
@@ -95,7 +103,7 @@ class Connector_Item(QGraphicsRectItem):
     def focusInEvent(self, event):
         self.setPen(QPen(Qt.black))
         self.setBrush(QBrush(Qt.gray))
-        super().focusOutEvent(event)
+        super().focusInEvent(event)
         
     def focusOutEvent(self, event):
         self._set_default_appearance()
@@ -217,7 +225,7 @@ class Block_Item(QGraphicsRectItem):
         self._resizer = resizer.Frame(self, debug=self._debug)
 
         self._ensure_minimum_size()
-        self._set_editing_mode(self._editing)
+        self.set_editing_mode(self._editing)
 
     def handle_connector_start_move(self, connector):
         self._start_move_connector_row = connector._connector.row
@@ -288,10 +296,11 @@ class Block_Item(QGraphicsRectItem):
                 elif self._title.boundingRect().contains(
                         self._title.mapFromParent(event.pos())):
                     self._title.start_editing()
-                #elif self._title_rect.contains(event.pos()):
-                #    pass
+                elif self._title_rect.contains(event.pos()):
+                    if not self._title.toPlainText():
+                        self._title.start_editing()
             else:
-                self._set_editing_mode(True)
+                self.set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
@@ -309,14 +318,14 @@ class Block_Item(QGraphicsRectItem):
         super().keyPressEvent(event)
         
     def mouse_pressed_in(self, source_item):
-        self._set_editing_mode(False)
+        self.set_editing_mode(False)
 
     def remove_connector(self, connector):
         self._connectors.remove(connector)
         connector.setParentItem(None)
         self._update_geometry()
         
-    def _set_editing_mode(self, editing):
+    def set_editing_mode(self, editing, edit_title=False):
         self._editing = editing
         self._resizer.set_resizable(self._editing)
         if self._editing:
@@ -336,7 +345,9 @@ class Block_Item(QGraphicsRectItem):
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable, False)
                 c.setFlag(self.ItemIsFocusable, False)
-        
+        if edit_title:
+            self._title.start_editing()
+
     def _ensure_minimum_size(self):
         min_width = self._title.boundingRect().width()
         min_height = self._header_height + self._footer_height
@@ -560,4 +571,6 @@ class Diagram_Editor(scene.Window):
             view_pos = self.scene_view.mapFromGlobal(global_pos)
             scene_pos = self.scene_view.mapToScene(view_pos)
             b_item.setPos(b_item.mapFromScene(scene_pos))
+            b_item.set_editing_mode(True, edit_title=True)
+            return # Do not call mousePressEvent, will lose focus
         super().mouseDoubleClickEvent(event)
