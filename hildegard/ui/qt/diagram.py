@@ -345,16 +345,21 @@ class Block_Item(QGraphicsRectItem):
     def append_new_connector(self, after=None, edit=True):
         if after is None:
             row = 0
+            col = 1
         else:
             row = after._connector.row
+            col = after._connector.col
             
         occupied_cols = self._get_occupied_cols()
         while True:
             if not row in occupied_cols:
                 break
             else:
+                taken_cols = occupied_cols[row]
+                if not col in taken_cols and len(taken_cols) < 2:
+                    break
                 row = row + 1
-        self.add_new_connector_at(row, 1, edit=True)
+        self.add_new_connector_at(row, col, edit=True)
         
     def set_editing_mode(self, editing, edit_title=False):
         self._editing = editing
