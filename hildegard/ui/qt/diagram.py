@@ -113,6 +113,12 @@ class Connector_Item(QGraphicsRectItem):
         key = event.key()
         if (key == Qt.Key_Delete):
             self.parentItem().parentItem().remove_connector(self)
+        elif (key == key == Qt.Key_E):
+            self._title.start_editing()
+        elif (key == key == Qt.Key_N):
+            self.parentItem().parentItem().append_new_connector(
+                after=self, edit=True)
+            return
         super().keyPressEvent(event)
         
     def mouseDoubleClickEvent(self, event):
@@ -185,9 +191,7 @@ class Block_Item(QGraphicsRectItem):
 
         self._connectors = []
         for i, (c_name, c) in enumerate(block.connectors.items()):
-            new_item = Connector_Item(
-                c, parent_item=self._connector_layer, debug=self._debug)
-            self._connectors.append(new_item)
+            self.add_connector(c, quick=True)
             
         rl = self._receptor_layer = QGraphicsRectItem(self.rect())
         rl.setParentItem(self)
@@ -278,21 +282,7 @@ class Block_Item(QGraphicsRectItem):
                 self._update_receptor_sensitivities()
                 r, c = self._receptors.get_cell_at(mouse=True, sensitive=True)
                 if r is not None:
-                    # Note that this connector should really be associated
-                    # with some port on this block's component, but that
-                    # is not required at this time.
-                    new_c = diagram.Connector(name="Untitled",row=r, col=c)
-                    new_item = Connector_Item(
-                        new_c, parent_item=self._connector_layer,
-                        debug=self._debug)
-                    new_item.setFlag(self.ItemIsMovable)
-                    new_item.setFlag(self.ItemIsFocusable)
-                    new_c.row = None
-                    self._connectors.append(new_item)
-                    self._move_connector_to(new_item, r, c)
-                    self._ensure_minimum_size()
-                    # Start editing connector title immediately
-                    new_item._title.start_editing()
+                    new_c = self.add_new_connector_at(r, c, edit=True)
                 elif self._title.boundingRect().contains(
                         self._title.mapFromParent(event.pos())):
                     self._title.start_editing()
@@ -315,6 +305,8 @@ class Block_Item(QGraphicsRectItem):
             parent_item = self.parentItem()
             if parent_item:
                 parent_item.remove_block(self)
+        elif (key == key == Qt.Key_N):
+            self.append_new_connector(edit=True)
         super().keyPressEvent(event)
         
     def mouse_pressed_in(self, source_item):
@@ -324,6 +316,45 @@ class Block_Item(QGraphicsRectItem):
         self._connectors.remove(connector)
         connector.setParentItem(None)
         self._update_geometry()
+        
+    def add_connector(self, connector, quick=False):
+        new_item = Connector_Item(
+            connector, parent_item=self._connector_layer, debug=self._debug)
+        if self._editing:
+            new_item.setFlag(self.ItemIsMovable)
+            new_item.setFlag(self.ItemIsFocusable)
+        if not quick:
+            self._ensure_minimum_size()
+        self._connectors.append(new_item)
+        return new_item
+    
+    def add_new_connector_at(self, r, c, quick=False, edit=True):
+        # Note that this connector should really be associated
+        # with some port on this block's component, but that
+        # is not required at this time.
+        new_c = diagram.Connector(name="Untitled",row=r, col=c)
+        new_c.row = None
+        new_item = self.add_connector(new_c, quick=quick)
+        self._move_connector_to(new_item, r, c)
+        if not quick:
+            self._ensure_minimum_size()
+        if edit:
+            new_item._title.start_editing()
+        return new_item
+    
+    def append_new_connector(self, after=None, edit=True):
+        if after is None:
+            row = 0
+        else:
+            row = after._connector.row
+            
+        occupied_cols = self._get_occupied_cols()
+        while True:
+            if not row in occupied_cols:
+                break
+            else:
+                row = row + 1
+        self.add_new_connector_at(row, 1, edit=True)
         
     def set_editing_mode(self, editing, edit_title=False):
         self._editing = editing
