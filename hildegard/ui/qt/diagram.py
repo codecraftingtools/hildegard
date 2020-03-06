@@ -5,10 +5,12 @@ from . import scene
 from . import resizer
 from ... import diagram
 
+import adaptagrams as avoid
+
 from qtpy.QtCore import QRectF, Qt
-from qtpy.QtGui import QBrush, QPen
+from qtpy.QtGui import QBrush, QPainterPath, QPen
 from qtpy.QtWidgets import (
-    QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem
+    QGraphicsItem, QGraphicsPathItem, QGraphicsRectItem, QGraphicsTextItem
 )
 
 class Title(QGraphicsTextItem):
@@ -167,7 +169,8 @@ class Block_Item(QGraphicsRectItem):
         self.setBrush(QBrush(Qt.gray))
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsFocusable)
-        
+        self.setFlag(self.ItemSendsGeometryChanges)
+
         t = self._title = Block_Title(self._block.name)
         t.setParentItem(self)
         t.setPos(0, self._vpad)
@@ -228,6 +231,8 @@ class Block_Item(QGraphicsRectItem):
         
         self._resizer = resizer.Frame(self, debug=self._debug)
 
+        self.avoid_shape = None
+        
         self._ensure_minimum_size()
         self.set_editing_mode(self._editing)
 
@@ -523,8 +528,7 @@ class Block_Item(QGraphicsRectItem):
                     self._insert_receptors.set_cell_sensitivity_at(
                         last_ri + 1, cii, True)
         
-    def _update_geometry(self):
-                
+    def _update_geometry(self):                
         r = self.rect()
         self._connector_layer.setRect(r)
         self._receptor_layer.setRect(r)
@@ -553,14 +557,91 @@ class Block_Item(QGraphicsRectItem):
         self._insert_receptors.update_geometry()
         self._resizer.update_geometry()
 
+        self._update_avoid()
+        
     def setRect(self, r):
         super().setRect(r)
         self._update_geometry()
+
+    def _update_avoid(self):
+        if self.parentItem():
+            avoid_router = self.parentItem().avoid_router
+            r = self.rect()
+            avoid_rect = avoid.AvoidRectangle(
+                avoid.Point(self.x(), self.y()),
+                avoid.Point(self.x() + r.width(),
+                            self.y() + r.height()))
+            if self.avoid_shape is None:
+                self.avoid_shape = avoid.ShapeRef(avoid_router, avoid_rect)
+            else:
+                avoid_router.moveShape(self.avoid_shape, avoid_rect)
+            self.parentItem().process_avoid_updates()
+            
+    def itemChange(self, change, value):
+        if change == self.ItemPositionHasChanged:
+            self._update_avoid()
+        return super().itemChange(change, value)
         
+    def setParentItem(self, parent_item):
+        super().setParentItem(parent_item)
+        self._update_avoid()
+        
+class Connection_Item(QGraphicsPathItem):
+    def __init__(self, x1, y1, x2, y2):
+        super().__init__()
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.path = QPainterPath()
+        self.path.moveTo(x1, y1)
+        self.path.lineTo(x2, y2)
+        self.setPath(self.path)
+        self.avoid_conn = None
+        self._update_avoid()
+        
+    def _update_avoid(self):
+        if self.parentItem():
+            avoid_router = self.parentItem().avoid_router
+            src = avoid.ConnEnd(avoid.Point(self.x1, self.y1))
+            dest = avoid.ConnEnd(avoid.Point(self.x2, self.y2))
+            if self.avoid_conn is None:
+                self.avoid_conn = avoid.ConnRef(avoid_router, src, dest)
+            else:
+                self.avoid_conn.setEndpoints(src, dest)
+            self.parentItem().process_avoid_updates()
+
+    def update_from_avoid_router(self):
+        if self.avoid_conn is not None and self.avoid_conn.needsRepaint():
+            route = self.avoid_conn.displayRoute()
+            self.path = QPainterPath()
+            for i in range(0, route.size()):
+                point = route.at(i)
+                if i > 0:
+                    self.path.lineTo(point.x, point.y)
+                else:
+                    self.path.moveTo(point.x, point.y)
+            self.setPath(self.path)
+        
+    def setParentItem(self, parent_item):
+        super().setParentItem(parent_item)
+        self._update_avoid()
+
 class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
         self.view = view
+        self.avoid_router = avoid.Router(
+            #avoid.PolyLineRouting)
+            avoid.OrthogonalRouting)
+        self.avoid_router.setRoutingParameter(
+            avoid.shapeBufferDistance, 10.0)
+        self.avoid_router.setRoutingParameter(
+            avoid.crossingPenalty, 50000000)
+        # TEST
+        self._c = Connection_Item(100, -40, 300, 300)
+        self._c.setParentItem(self)
+        # END TEST
         self._block_items = []
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
@@ -591,7 +672,13 @@ class Diagram_Item(QGraphicsItem):
     def boundingRect(self, *args, **kw):
         # Implement pure virtual method
         return QRectF(0,0,0,0)
-    
+
+    def process_avoid_updates(self):
+        self.avoid_router.processTransaction()
+        # TEST
+        self._c.update_from_avoid_router()
+        # END TEST
+        
 class Diagram_Editor(scene.Window):
     def __init__(self, view):
         super().__init__(Diagram_Item(view))
