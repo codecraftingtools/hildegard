@@ -20,8 +20,17 @@ class Symbol(View):
 class Block(Symbol):
     _attributes = ()
 
+class Connection(View):
+    _attributes = (
+        Attribute("subject", component.Channel, alias="channel"),
+        Attribute("source", Connector),
+        Attribute("sink", Connector),
+    )
+
 class Diagram(View):
     _attributes = (
         Attribute("subject", component.Hierarchy, alias="hierarchy"),
         Attribute("symbols", elements(Symbol, "symbol")),
+        Attribute("connections",
+                  elements(Connection, "connection", anonymous=True)),
     )

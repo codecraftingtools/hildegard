@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from hildegard.diagram import Block, Connector, Diagram
+from hildegard.diagram import Block, Connector, Connection, Diagram
 from hildegard import Environment
 from pidgen import component
 
@@ -66,6 +66,13 @@ def main(args=None):
                     )),
                 )
             )),
+        )
+    )
+    d1.connections.append(
+        Connection(
+            channel=component.Channel(),
+            source=d1.symbols["SC1"].connectors["Connector 2"],
+            sink=d1.symbols["SC2"].connectors["Connector 1"],
         )
     )
     env.open(d1)

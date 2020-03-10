@@ -29,7 +29,7 @@ class Instance(Entity):
         Attribute("implementation", Implementation),
     )
 
-class Connection(Entity):
+class Channel(Entity):
     _attributes = (
         Attribute("source", Port),
         Attribute("sink", Port),
@@ -38,6 +38,5 @@ class Connection(Entity):
 class Hierarchy(Implementation):
     _attributes = (
         Attribute("subcomponents", elements(Instance, "subcomponent")),
-        Attribute("connections",
-                  elements(Connection, "connection", anonymous=True)),
+        Attribute("channels", elements(Channel, "channel", anonymous=True)),
     )

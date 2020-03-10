@@ -587,19 +587,43 @@ class Block_Item(QGraphicsRectItem):
         self._update_avoid()
         
 class Connection_Item(QGraphicsPathItem):
-    def __init__(self, x1, y1, x2, y2):
+    def __init__(self, connection, parent):
         super().__init__()
-        self.x1 = x1
-        self.y1 = y1
-        self.x2 = x2
-        self.y2 = y2
-        self.path = QPainterPath()
-        self.path.moveTo(x1, y1)
-        self.path.lineTo(x2, y2)
-        self.setPath(self.path)
+        self._connection = connection
+        self._source_ui = self._find_ui(parent, connection.source)
+        self._sink_ui = self._find_ui(parent, connection.sink)
         self.avoid_conn = None
+        self.update_endpoints()
+        self.setZValue(10)
+
+    def _find_ui(self, parent, c):
+        result = None
+        for b_ui in parent._block_items:
+            for c_ui in b_ui._connectors:
+                if c_ui._connector == c:
+                    return c_ui
+        return result
+
+    def _get_endpoint(self, c_ui):
+        x = c_ui.x()
+        if c_ui._connector.col == 2:
+            x = x + c_ui.rect().width()
+        elif c_ui._connector.col == 1:
+            x = x + c_ui.rect().width() / 2.0
+        y = c_ui.y() + c_ui.rect().height() / 2.0
+        p = self.mapToParent(
+            self.mapFromScene(c_ui.parentItem().mapToScene(x, y)))
+        return p.x(), p.y()
+    
+    def update_endpoints(self):
+        self.x1, self.y1 = self._get_endpoint(self._source_ui)
+        self.x2, self.y2 = self._get_endpoint(self._sink_ui)
+        self.path = QPainterPath()
+        self.path.moveTo(self.x1, self.y1)
+        self.path.lineTo(self.x2, self.y2)
+        self.setPath(self.path)
         self._update_avoid()
-        
+
     def _update_avoid(self):
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
@@ -609,7 +633,6 @@ class Connection_Item(QGraphicsPathItem):
                 self.avoid_conn = avoid.ConnRef(avoid_router, src, dest)
             else:
                 self.avoid_conn.setEndpoints(src, dest)
-            self.parentItem().process_avoid_updates()
 
     def update_from_avoid_router(self):
         if self.avoid_conn is not None and self.avoid_conn.needsRepaint():
@@ -638,15 +661,21 @@ class Diagram_Item(QGraphicsItem):
             avoid.shapeBufferDistance, 10.0)
         self.avoid_router.setRoutingParameter(
             avoid.crossingPenalty, 50000000)
-        # TEST
-        self._c = Connection_Item(100, -40, 300, 300)
-        self._c.setParentItem(self)
-        # END TEST
+        self._connection_items = []
         self._block_items = []
         for i, (s_name, s) in enumerate(
                 self.view.symbols.items()):
             s_ui = self.add_block(s, debug=False)
             s_ui.moveBy(200*i,0)
+        for c in self.view.connections:
+            self.add_connection(c)
+        self.process_avoid_updates()
+        
+    def add_connection(self, connection):
+        c_ui = Connection_Item(connection, self)
+        c_ui.setParentItem(self)
+        self._connection_items.append(c_ui)
+        return c_ui
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
@@ -674,10 +703,11 @@ class Diagram_Item(QGraphicsItem):
         return QRectF(0,0,0,0)
 
     def process_avoid_updates(self):
+        for c_ui in self._connection_items:
+            c_ui.update_endpoints()
         self.avoid_router.processTransaction()
-        # TEST
-        self._c.update_from_avoid_router()
-        # END TEST
+        for c_ui in self._connection_items:
+            c_ui.update_from_avoid_router()
         
 class Diagram_Editor(scene.Window):
     def __init__(self, view):
