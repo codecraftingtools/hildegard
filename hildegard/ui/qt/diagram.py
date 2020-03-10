@@ -231,7 +231,10 @@ class Block_Item(QGraphicsRectItem):
         
         self._resizer = resizer.Frame(self, debug=self._debug)
 
-        self.avoid_shape = None
+        self._header_avoid_shape = None
+        self._row_avoid_shapes = []
+        self._footer_avoid_shape = None
+        self._avoid_shape = None
         
         self._ensure_minimum_size()
         self.set_editing_mode(self._editing)
@@ -567,14 +570,79 @@ class Block_Item(QGraphicsRectItem):
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
             r = self.rect()
+
+            # Header area
+            avoid_rect = avoid.AvoidRectangle(
+                avoid.Point(self.x(), self.y()),
+                avoid.Point(self.x() + r.width(),
+                            self.y() + self._header_height))
+            if self._header_avoid_shape is None:
+                self._header_avoid_shape = avoid.ShapeRef(
+                    avoid_router, avoid_rect)
+            else:
+                avoid_router.moveShape(self._header_avoid_shape, avoid_rect)
+
+            # Row areas
+            occupied_cols = self._get_occupied_cols()
+            n_avoid_rows = len(self._row_avoid_shapes)
+            n_visible_rows = self._receptors.get_num_visible_rows()
+            for ri in range(n_visible_rows):
+                if (not ri in occupied_cols or
+                    len(occupied_cols[ri]) == 0 or
+                    1 in occupied_cols[ri]):
+                    x = self.x()
+                    w = r.width()
+                elif len(occupied_cols[ri]) > 1:
+                    w = r.width() / 2.0
+                    x = self.x() + w/2.0
+                elif 2 in occupied_cols[ri]:
+                    x = self.x()
+                    w = r.width() / 2.0
+                elif 0 in occupied_cols[ri]:
+                    w = r.width() / 2.0
+                    x = self.x() + w
+                avoid_rect = avoid.AvoidRectangle(
+                    avoid.Point(
+                        x,
+                        self.y() + self._header_height + ri*self._row_height),
+                    avoid.Point(
+                        x + w,
+                        self.y() + self._header_height+(ri+1)*self._row_height))
+                if ri >= n_avoid_rows:
+                    self._row_avoid_shapes.append(
+                        avoid.ShapeRef(avoid_router, avoid_rect))
+                else:
+                    avoid_router.moveShape(
+                        self._row_avoid_shapes[ri], avoid_rect)
+            for ri in range(n_avoid_rows):
+                if ri >= n_visible_rows:
+                    avoid_rect = avoid.AvoidRectangle(
+                        avoid.Point(self.x(), self.y()),
+                        avoid.Point(self.x(), self.y()))
+                    avoid_router.moveShape(
+                        self._row_avoid_shapes[ri], avoid_rect)
+                
+            # Footer area
+            avoid_rect = avoid.AvoidRectangle(
+                avoid.Point(self.x(),
+                            self.y() + r.height() - self._footer_height),
+                avoid.Point(self.x() + r.width(),
+                            self.y() + r.height()))
+            if self._footer_avoid_shape is None:
+                self._footer_avoid_shape = avoid.ShapeRef(
+                    avoid_router, avoid_rect)
+            else:
+                avoid_router.moveShape(self._footer_avoid_shape, avoid_rect)
+
+            # Full block
             avoid_rect = avoid.AvoidRectangle(
                 avoid.Point(self.x(), self.y()),
                 avoid.Point(self.x() + r.width(),
                             self.y() + r.height()))
-            if self.avoid_shape is None:
-                self.avoid_shape = avoid.ShapeRef(avoid_router, avoid_rect)
+            if self._avoid_shape is None:
+                self._avoid_shape = avoid.ShapeRef(avoid_router, avoid_rect)
             else:
-                avoid_router.moveShape(self.avoid_shape, avoid_rect)
+                avoid_router.moveShape(self._avoid_shape, avoid_rect)
             self.parentItem().process_avoid_updates()
             
     def itemChange(self, change, value):
@@ -594,7 +662,8 @@ class Connection_Item(QGraphicsPathItem):
         self._sink_ui = self._find_ui(parent, connection.sink)
         self.avoid_conn = None
         self.update_endpoints()
-        self.setZValue(10)
+        self.setZValue(-10)
+        self.setPen(QPen(Qt.black,2))
 
     def _find_ui(self, parent, c):
         result = None
@@ -659,6 +728,8 @@ class Diagram_Item(QGraphicsItem):
             avoid.OrthogonalRouting)
         self.avoid_router.setRoutingParameter(
             avoid.shapeBufferDistance, 10.0)
+        self.avoid_router.setRoutingParameter(
+            avoid.idealNudgingDistance, 10.0)
         self.avoid_router.setRoutingParameter(
             avoid.crossingPenalty, 50000000)
         self._connection_items = []

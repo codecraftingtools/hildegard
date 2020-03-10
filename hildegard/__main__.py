@@ -64,17 +64,25 @@ def main(args=None):
                     ("Connector 1", Connector(
                         port=if1.ports["Port 1"], row=0,
                     )),
+                    ("Connector 2", Connector(
+                        port=if1.ports["Port 2"], row=1,
+                    )),
                 )
             )),
         )
     )
-    d1.connections.append(
+    d1.connections.extend([
         Connection(
             channel=component.Channel(),
             source=d1.symbols["SC1"].connectors["Connector 2"],
             sink=d1.symbols["SC2"].connectors["Connector 1"],
-        )
-    )
+        ),
+        Connection(
+            channel=component.Channel(),
+            source=d1.symbols["SC1"].connectors["Connector 3"],
+            sink=d1.symbols["SC2"].connectors["Connector 2"],
+        ),
+    ])
     env.open(d1)
 
     b1 = Block(
