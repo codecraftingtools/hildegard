@@ -298,7 +298,31 @@ class Block_Item(QGraphicsRectItem):
                     if not self._title.toPlainText():
                         self._title.start_editing()
             else:
-                self.set_editing_mode(True)
+                in_existing_connector = None
+                for c in self._connectors:
+                    if c.contains(c.mapFromParent(event.pos())):
+                        in_existing_connector = c
+                        break
+                if in_existing_connector:
+                        if self.parentItem():
+                            start_c = self.parentItem(
+                                ).connection_in_progress_from
+                            if start_c:
+                                if c != start_c:
+                                    conn = diagram.Connection(
+                                        source=start_c._connector,
+                                        sink=c._connector,
+                                    )
+                                    self.parentItem().add_connection(conn)
+                                start_c._title.setDefaultTextColor(Qt.black)
+                                self.parentItem(
+                                    ).connection_in_progress_from = None
+                            else:
+                                c._title.setDefaultTextColor(Qt.red)
+                                self.parentItem(
+                                    ).connection_in_progress_from = c
+                else:
+                    self.set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
@@ -728,6 +752,7 @@ class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
         self.view = view
+        self.connection_in_progress_from = None
         self.avoid_router = avoid.Router(
             #avoid.PolyLineRouting)
             avoid.OrthogonalRouting)
