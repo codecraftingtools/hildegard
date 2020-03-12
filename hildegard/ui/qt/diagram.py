@@ -674,6 +674,8 @@ class Connection_Item(QGraphicsPathItem):
         return result
 
     def _get_endpoint(self, c_ui):
+        if c_ui.parentItem() is None:
+            return None, None
         x = c_ui.x()
         if c_ui._connector.col == 2:
             x = x + c_ui.rect().width()
@@ -687,12 +689,15 @@ class Connection_Item(QGraphicsPathItem):
     def update_endpoints(self):
         self.x1, self.y1 = self._get_endpoint(self._source_ui)
         self.x2, self.y2 = self._get_endpoint(self._sink_ui)
+        if self.x1 is None or self.x2 is None:
+            return False
         self.path = QPainterPath()
         self.path.moveTo(self.x1, self.y1)
         self.path.lineTo(self.x2, self.y2)
         self.setPath(self.path)
         self._update_avoid()
-
+        return True
+    
     def _update_avoid(self):
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
@@ -748,6 +753,11 @@ class Diagram_Item(QGraphicsItem):
         self._connection_items.append(c_ui)
         return c_ui
 
+    def remove_connection(self, c_ui):
+        self.avoid_router.deleteConnector(c_ui.avoid_conn)
+        self._connection_items.remove(c_ui)
+        c_ui.setParentItem(None)
+
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
         s_ui.setParentItem(self)
@@ -774,8 +784,10 @@ class Diagram_Item(QGraphicsItem):
         return QRectF(0,0,0,0)
 
     def process_avoid_updates(self):
-        for c_ui in self._connection_items:
-            c_ui.update_endpoints()
+        for c_ui in list(self._connection_items):
+            success = c_ui.update_endpoints()
+            if not success:
+                self.remove_connection(c_ui)
         self.avoid_router.processTransaction()
         for c_ui in self._connection_items:
             c_ui.update_from_avoid_router()
