@@ -181,6 +181,7 @@ class Block_Item(QGraphicsRectItem):
         self._row_height = text_height
         self._insert_receptor_height = text_height/2.0
         self._header_height = text_height + 2*self._vpad
+        self._grid_size = self._row_height / 2.0
         
         tr = self._title_rect = QGraphicsRectItem(
             0, 0, 10, self._header_height) # width set later
@@ -607,6 +608,18 @@ class Block_Item(QGraphicsRectItem):
         self._update_avoid()
         
     def setRect(self, r):
+        # Snap size to grid
+        w = r.width()
+        extra_w = w % self._grid_size
+        if extra_w > 0.25:
+            w = (1 + (w // self._grid_size)) * self._grid_size
+        r.setWidth(w)
+        h = r.height()
+        extra_h = h % self._grid_size
+        if extra_h > 0.25:
+            h = (1 + (h // self._grid_size)) * self._grid_size
+        r.setHeight(h)
+                
         super().setRect(r)
         self._update_geometry()
 
@@ -690,7 +703,20 @@ class Block_Item(QGraphicsRectItem):
             self.parentItem().process_avoid_updates()
             
     def itemChange(self, change, value):
-        if change == self.ItemPositionHasChanged:
+        if change == self.ItemPositionChange:
+            # Snap position to grid
+            x = value.x()
+            extra_x = x % self._grid_size
+            if extra_x > 0.25:
+                x = (1 + (x // self._grid_size)) * self._grid_size
+            value.setX(x)
+            y = value.y()
+            extra_y = y % self._grid_size
+            if extra_y > 0.25:
+                y = (1 + (y // self._grid_size)) * self._grid_size
+            value.setY(y)
+            return value
+        elif change == self.ItemPositionHasChanged:
             self._update_avoid()
         return super().itemChange(change, value)
         
