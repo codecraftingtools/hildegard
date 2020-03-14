@@ -691,8 +691,27 @@ class Connection_Item(QGraphicsPathItem):
         self.avoid_conn = None
         self.update_endpoints()
         self.setZValue(-10)
-        self.setPen(QPen(Qt.black,2))
+        self._set_default_appearance()
+        self.setFlag(self.ItemIsFocusable)
 
+    def _set_default_appearance(self):
+        self.setPen(QPen(Qt.black,2))
+        
+    def focusInEvent(self, event):
+        self.setPen(QPen(Qt.red,2))
+        super().focusInEvent(event)
+        
+    def focusOutEvent(self, event):
+        self._set_default_appearance()
+        super().focusOutEvent(event)
+        
+    def keyPressEvent(self, event):
+        key = event.key()
+        if (key == Qt.Key_Delete):
+            self.parentItem().remove_connection(self)
+            return
+        super().keyPressEvent(event)
+        
     def _find_ui(self, parent, c):
         result = None
         for b_ui in parent._block_items:
