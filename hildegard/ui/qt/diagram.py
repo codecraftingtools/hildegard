@@ -235,6 +235,7 @@ class Block_Item(QGraphicsRectItem):
 
         self._header_avoid_shape = None
         self._row_avoid_shapes = []
+        self._row_divider_avoid_shapes = []
         self._footer_avoid_shape = None
         self._avoid_shape = None
         
@@ -666,12 +667,23 @@ class Block_Item(QGraphicsRectItem):
                     avoid.Point(
                         x + w,
                         self.y() + self._header_height+(ri+1)*self._row_height))
+                divider_avoid_rect = avoid.AvoidRectangle(
+                    avoid.Point(
+                        self.x(),
+                        self.y() + self._header_height + ri*self._row_height),
+                    avoid.Point(
+                        self.x() + r.width(),
+                        self.y() + self._header_height+ri*self._row_height+2))
                 if ri >= n_avoid_rows:
                     self._row_avoid_shapes.append(
                         avoid.ShapeRef(avoid_router, avoid_rect))
+                    self._row_divider_avoid_shapes.append(
+                        avoid.ShapeRef(avoid_router, divider_avoid_rect))
                 else:
                     avoid_router.moveShape(
                         self._row_avoid_shapes[ri], avoid_rect)
+                    avoid_router.moveShape(
+                        self._row_divider_avoid_shapes[ri], divider_avoid_rect)
             for ri in range(n_avoid_rows):
                 if ri >= n_visible_rows:
                     avoid_rect = avoid.AvoidRectangle(
@@ -679,6 +691,8 @@ class Block_Item(QGraphicsRectItem):
                         avoid.Point(self.x(), self.y()))
                     avoid_router.moveShape(
                         self._row_avoid_shapes[ri], avoid_rect)
+                    avoid_router.moveShape(
+                        self._row_divider_avoid_shapes[ri], avoid_rect)
                 
             # Footer area
             avoid_rect = avoid.AvoidRectangle(
