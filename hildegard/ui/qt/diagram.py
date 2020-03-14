@@ -344,6 +344,10 @@ class Block_Item(QGraphicsRectItem):
     def mouse_pressed_in(self, source_item):
         self.set_editing_mode(False)
 
+    def remove_all_connectors(self):
+        for c in list(self._connectors):
+            self.remove_connector(c)
+            
     def remove_connector(self, connector):
         self._connectors.remove(connector)
         connector.setParentItem(None)
@@ -791,6 +795,7 @@ class Diagram_Item(QGraphicsItem):
     
     def remove_block(self, block):
         self._block_items.remove(block)
+        block.remove_all_connectors()
         block.setParentItem(None)
         
     def mouse_pressed_in(self, source_item):
