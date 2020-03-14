@@ -314,6 +314,7 @@ class Block_Item(QGraphicsRectItem):
                                         sink=c._connector,
                                     )
                                     self.parentItem().add_connection(conn)
+                                    self.parentItem().process_avoid_updates()
                                 start_c._title.setDefaultTextColor(Qt.black)
                                 self.parentItem(
                                     ).connection_in_progress_from = None
