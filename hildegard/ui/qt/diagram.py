@@ -8,7 +8,7 @@ from ... import diagram
 import adaptagrams as avoid
 
 from qtpy.QtCore import QRectF, Qt
-from qtpy.QtGui import QBrush, QPainterPath, QPen
+from qtpy.QtGui import QBrush, QColor, QPainterPath, QPen
 from qtpy.QtWidgets import (
     QGraphicsItem, QGraphicsPathItem, QGraphicsRectItem, QGraphicsTextItem
 )
@@ -103,8 +103,9 @@ class Connector_Item(QGraphicsRectItem):
         self.setBrush(QBrush(Qt.NoBrush))
 
     def focusInEvent(self, event):
-        self.setPen(QPen(Qt.black))
-        self.setBrush(QBrush(Qt.gray))
+        self.setPen(QPen(Qt.red))
+        self.setBrush(QBrush(
+            self.parentItem().parentItem().highlight_background_color))
         super().focusInEvent(event)
         
     def focusOutEvent(self, event):
@@ -164,6 +165,7 @@ class Block_Item(QGraphicsRectItem):
         self._footer_height = self._vpad
         self._editing = False
         self._start_move_connector_row = None
+        self.highlight_background_color = QColor(255,127,127,255)
         
         super().__init__(0, 0, 120, 200)
         self.setBrush(QBrush(Qt.gray))
@@ -182,7 +184,6 @@ class Block_Item(QGraphicsRectItem):
         
         tr = self._title_rect = QGraphicsRectItem(
             0, 0, 10, self._header_height) # width set later
-        tr.setBrush(QBrush(Qt.darkGray))
         tr.setParentItem(self)
         self._title.setParentItem(tr)
         
@@ -237,6 +238,7 @@ class Block_Item(QGraphicsRectItem):
         self._avoid_shape = None
         
         self._ensure_minimum_size()
+        self._set_default_appearance()
         self.set_editing_mode(self._editing)
 
     def handle_connector_start_move(self, connector):
@@ -398,21 +400,34 @@ class Block_Item(QGraphicsRectItem):
                 row = row + 1
         self.add_new_connector_at(row, col, edit=True)
         
+    def focusInEvent(self, event):
+        self.setPen(QPen(Qt.red,2))
+        self._title_rect.setPen(QPen(Qt.red,2))
+        super().focusInEvent(event)
+        
+    def focusOutEvent(self, event):
+        self._set_default_appearance()
+        super().focusOutEvent(event)
+
+    def _set_default_appearance(self):
+        self.setPen(QPen(Qt.black,2))
+        self._title_rect.setPen(QPen(Qt.black,2))
+        
     def set_editing_mode(self, editing, edit_title=False):
         self._editing = editing
         self._resizer.set_resizable(self._editing)
         if self._editing:
             self.setFocus()
-            self.setPen(QPen(Qt.red,2))
-            self._title_rect.setPen(QPen(Qt.red,2))
+            self._title_rect.setBrush(QBrush(self.highlight_background_color))
+            self.setBrush(QBrush(QColor(255,127,127,255)))
             self._base_zvalue = self.zValue()
             self.setZValue(self._top_zvalue)
             for c in self._connectors:
                 c.setFlag(self.ItemIsMovable)
                 c.setFlag(self.ItemIsFocusable)
         else:
-            self.setPen(QPen(Qt.black,2))
-            self._title_rect.setPen(QPen(Qt.black,2))
+            self._title_rect.setBrush(QBrush(Qt.darkGray))
+            self.setBrush(QBrush(Qt.lightGray))
             if self._base_zvalue is not None:
                 self.setZValue(self._base_zvalue)
             for c in self._connectors:
