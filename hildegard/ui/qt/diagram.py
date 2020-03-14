@@ -307,30 +307,31 @@ class Block_Item(QGraphicsRectItem):
                         in_existing_connector = c
                         break
                 if in_existing_connector:
-                        if self.parentItem():
-                            start_c = self.parentItem(
-                                ).connection_in_progress_from
-                            if start_c:
-                                if c != start_c:
-                                    conn = diagram.Connection(
-                                        source=start_c._connector,
-                                        sink=c._connector,
-                                    )
-                                    self.parentItem().add_connection(conn)
-                                    self.parentItem().process_avoid_updates()
-                                start_c._title.setDefaultTextColor(Qt.black)
-                                self.parentItem(
-                                    ).connection_in_progress_from = None
-                            else:
-                                c._title.setDefaultTextColor(Qt.red)
-                                self.parentItem(
-                                    ).connection_in_progress_from = c
+                    start_c = self.parentItem(
+                        ).connection_in_progress_from
+                    if not start_c:
+                        if self.parentItem().connect_on_double_click:
+                            self.parentItem().start_connecting(c)
+                            return
                 else:
                     self.set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
+        self.parentItem().connect_on_double_click = True
         parent_item = self.parentItem()
+        if event.button() == Qt.LeftButton:
+           in_existing_connector = None
+           for c in self._connectors:
+               if c.contains(c.mapFromParent(event.pos())):
+                   in_existing_connector = c
+                   break
+           if in_existing_connector:
+               start_c = self.parentItem(
+                   ).connection_in_progress_from
+               if start_c:
+                   self.parentItem().finish_connecting(c)
+                   self.parentItem().connect_on_double_click = False
         if parent_item:
             parent_item.mouse_pressed_in(self)
         super().mousePressEvent(event)
@@ -818,6 +819,7 @@ class Diagram_Item(QGraphicsItem):
         super().__init__()
         self.view = view
         self.connection_in_progress_from = None
+        self.connect_on_double_click = True
         self.avoid_router = avoid.Router(
             #avoid.PolyLineRouting)
             avoid.OrthogonalRouting)
@@ -836,6 +838,32 @@ class Diagram_Item(QGraphicsItem):
         for c in self.view.connections:
             self.add_connection(c)
         self.process_avoid_updates()
+
+    def start_connecting(self, c):
+        self.connection_in_progress_from = c
+        c._title.setDefaultTextColor(Qt.red)
+        
+    def finish_connecting(self, c):
+        start_c = self.connection_in_progress_from
+        if c != start_c:
+            conn = diagram.Connection(
+                source=start_c._connector,
+                sink=c._connector,
+            )
+            self._stop_connecting()
+            self.add_connection(conn)
+            self.process_avoid_updates()
+        else:
+            self.abort_connecting()
+
+    def abort_connecting(self):
+        self._stop_connecting()
+        
+    def _stop_connecting(self):
+        start_c = self.connection_in_progress_from
+        if start_c:
+            start_c._title.setDefaultTextColor(Qt.black)
+            self.connection_in_progress_from = None
         
     def add_connection(self, connection):
         c_ui = Connection_Item(connection, self)
@@ -865,7 +893,8 @@ class Diagram_Item(QGraphicsItem):
         for item in self._block_items:
             if source_item != item:
                 item.mouse_pressed_in(source_item)
-                
+        self.abort_connecting()
+        
     def paint(self, *args, **kw):
         # Implement pure virtual method
         pass
