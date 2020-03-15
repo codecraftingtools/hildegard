@@ -308,20 +308,22 @@ class Block_Item(QGraphicsRectItem):
                         in_existing_connector = c
                         break
                 if in_existing_connector:
-                    start_c = self.parentItem(
-                        ).connection_in_progress_from
-                    if not start_c:
-                        if self.parentItem().connect_on_double_click:
-                            self.parentItem().start_connecting(c)
-                            return
+                    if self.parentItem():
+                        start_c = self.parentItem(
+                            ).connection_in_progress_from
+                        if not start_c:
+                            if self.parentItem().connect_on_double_click:
+                                self.parentItem().start_connecting(c)
+                                return
                 else:
                     self.set_editing_mode(True)
         super().mouseDoubleClickEvent(event)
         
     def mousePressEvent(self, event):
-        self.parentItem().connect_on_double_click = True
         parent_item = self.parentItem()
-        if event.button() == Qt.LeftButton:
+        if parent_item:
+            parent_item.connect_on_double_click = True
+        if event.button() == Qt.LeftButton and parent_item:
            in_existing_connector = None
            for c in self._connectors:
                if c.contains(c.mapFromParent(event.pos())):
