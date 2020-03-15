@@ -669,10 +669,10 @@ class Block_Item(QGraphicsRectItem):
                         self.y() + self._header_height+(ri+1)*self._row_height))
                 divider_avoid_rect = avoid.AvoidRectangle(
                     avoid.Point(
-                        self.x(),
+                        self.x() - self.parentItem().pin_length,
                         self.y() + self._header_height + ri*self._row_height),
                     avoid.Point(
-                        self.x() + r.width(),
+                        self.x() + r.width() + self.parentItem().pin_length,
                         self.y() + self._header_height+ri*self._row_height+2))
                 if ri >= n_avoid_rows:
                     self._row_avoid_shapes.append(
@@ -814,12 +814,43 @@ class Connection_Item(QGraphicsPathItem):
 
     def update_from_avoid_router(self):
         if self.avoid_conn is not None and self.avoid_conn.needsRepaint():
+            radius = self.parentItem().route_radius
             route = self.avoid_conn.displayRoute()
             self.path = QPainterPath()
+            last_i = route.size() - 1
             for i in range(0, route.size()):
                 point = route.at(i)
                 if i > 0:
-                    self.path.lineTo(point.x, point.y)
+                    last_point = route.at(i-1)
+                    last_path_point = self.path.currentPosition()
+                    if point.y == last_point.y: # horizontal line
+                        if point.x > last_point.x: # right
+                            sign = 1
+                        else: # left
+                            sign = -1
+                        self.path.quadTo(
+                            last_point.x,last_point.y,
+                            last_point.x+sign*radius, point.y)
+                        if i == last_i:
+                            my_x = point.x
+                        else:
+                            my_x = point.x-sign*radius
+                        self.path.lineTo(my_x, point.y)
+                    elif point.x == last_point.x: # vertical line
+                        if point.y > last_point.y: # down
+                            sign = 1
+                        else: # up
+                            sign = -1
+                        self.path.quadTo(
+                            last_point.x,last_point.y,
+                            point.x, last_point.y+sign*radius)
+                        if i == last_i:
+                            my_y = point.y
+                        else:
+                            my_y = point.y-sign*radius
+                        self.path.lineTo(point.x, my_y)
+                    else:
+                        self.path.lineTo(point.x, point.y)
                 else:
                     self.path.moveTo(point.x, point.y)
             self.setPath(self.path)
@@ -843,6 +874,8 @@ class Diagram_Item(QGraphicsItem):
             avoid.idealNudgingDistance, 10.0)
         self.avoid_router.setRoutingParameter(
             avoid.crossingPenalty, 50000000)
+        self.route_radius = 6.0
+        self.pin_length = 10.0
         self._connection_items = []
         self._block_items = []
         for i, (s_name, s) in enumerate(
