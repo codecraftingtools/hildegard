@@ -920,9 +920,9 @@ class Diagram_Item(QGraphicsItem):
             self.add_connection(conn)
             self.process_avoid_updates()
         else:
-            self.abort_connecting()
+            self.abort_connecting(c)
 
-    def abort_connecting(self, source_item):
+    def abort_connecting(self, source_item=None):
         if source_item:
             if self.connection_in_progress_from:
                 source_item.clearFocus()
