@@ -87,6 +87,9 @@ class View(QGraphicsView):
                 self._last_mouse_pos)
             self.translate(delta_scene.x(), delta_scene.y())                
             self._last_mouse_pos = mouse_pos
+        else:
+            if hasattr(self.parent(), "mouse_move"):
+                self.parent().mouse_move(event)
         super().mouseMoveEvent(event)
 
     def wheelEvent(self, event):

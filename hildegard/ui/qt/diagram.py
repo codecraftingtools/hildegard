@@ -10,8 +10,8 @@ import adaptagrams as avoid
 from qtpy.QtCore import QRectF, Qt
 from qtpy.QtGui import QBrush, QColor, QPainterPath, QPen
 from qtpy.QtWidgets import (
-    QGraphicsItem, QGraphicsPathItem, QGraphicsRectItem, QGraphicsTextItem
-)
+    QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsRectItem,
+    QGraphicsTextItem)
 
 class Title(QGraphicsTextItem):
     def start_editing(self):
@@ -153,6 +153,17 @@ class Connector_Item(QGraphicsRectItem):
             self.parentItem().parentItem().handle_connector_end_move(
                 self, disregard=disregard)
         super().mouseReleaseEvent(event)
+
+    def get_connection_point(self):
+        if self.parentItem() is None:
+            return None, None
+        x = self.x()
+        if self._connector.col == 2:
+            x = x + self.rect().width()
+        elif self._connector.col == 1:
+            x = x + self.rect().width() / 2.0
+        y = self.y() + self.rect().height() / 2.0
+        return x, y
         
 class Block_Item(QGraphicsRectItem):
     def __init__(self, block, debug=False):
@@ -313,7 +324,7 @@ class Block_Item(QGraphicsRectItem):
                             ).connection_in_progress_from
                         if not start_c:
                             if self.parentItem().connect_on_double_click:
-                                self.parentItem().start_connecting(c)
+                                self.parentItem().start_connecting(c, event)
                                 return
                 else:
                     self.set_editing_mode(True)
@@ -335,6 +346,7 @@ class Block_Item(QGraphicsRectItem):
                if start_c:
                    self.parentItem().finish_connecting(c)
                    self.parentItem().connect_on_double_click = False
+                   self.clearFocus()
         if parent_item:
             parent_item.mouse_pressed_in(self)
         super().mousePressEvent(event)
@@ -780,14 +792,9 @@ class Connection_Item(QGraphicsPathItem):
         return result
 
     def _get_endpoint(self, c_ui):
-        if c_ui.parentItem() is None:
+        x, y = c_ui.get_connection_point()
+        if x is None:
             return None, None
-        x = c_ui.x()
-        if c_ui._connector.col == 2:
-            x = x + c_ui.rect().width()
-        elif c_ui._connector.col == 1:
-            x = x + c_ui.rect().width() / 2.0
-        y = c_ui.y() + c_ui.rect().height() / 2.0
         p = self.mapToParent(
             self.mapFromScene(c_ui.parentItem().mapToScene(x, y)))
         return p.x(), p.y()
@@ -866,6 +873,7 @@ class Diagram_Item(QGraphicsItem):
         super().__init__()
         self.view = view
         self.connection_in_progress_from = None
+        self.connection_in_progress_line = None
         self.connect_on_double_click = True
         self.avoid_router = avoid.Router(
             #avoid.PolyLineRouting)
@@ -888,8 +896,17 @@ class Diagram_Item(QGraphicsItem):
             self.add_connection(c)
         self.process_avoid_updates()
 
-    def start_connecting(self, c):
+    def start_connecting(self, c, event):
         self.connection_in_progress_from = c
+        x, y = c.get_connection_point()
+        p1 = self.mapToParent(
+            self.mapFromScene(c.parentItem().mapToScene(x, y)))
+        x1 = p1.x()
+        y1 = p1.y()
+        p2 = self.mapFromScene(event.scenePos())
+        self.connection_in_progress_line = QGraphicsLineItem(
+            x1, y1, p2.x(), p2.y())
+        self.connection_in_progress_line.setParentItem(self)
         c._title.setDefaultTextColor(Qt.red)
         
     def finish_connecting(self, c):
@@ -905,7 +922,10 @@ class Diagram_Item(QGraphicsItem):
         else:
             self.abort_connecting()
 
-    def abort_connecting(self):
+    def abort_connecting(self, source_item):
+        if source_item:
+            if self.connection_in_progress_from:
+                source_item.clearFocus()
         self._stop_connecting()
         
     def _stop_connecting(self):
@@ -913,6 +933,8 @@ class Diagram_Item(QGraphicsItem):
         if start_c:
             start_c._title.setDefaultTextColor(Qt.black)
             self.connection_in_progress_from = None
+            self.connection_in_progress_line.setParentItem(None)
+            self.connection_in_progress_line = None
         
     def add_connection(self, connection):
         c_ui = Connection_Item(connection, self)
@@ -942,7 +964,7 @@ class Diagram_Item(QGraphicsItem):
         for item in self._block_items:
             if source_item != item:
                 item.mouse_pressed_in(source_item)
-        self.abort_connecting()
+        self.abort_connecting(source_item)
         
     def paint(self, *args, **kw):
         # Implement pure virtual method
@@ -965,6 +987,20 @@ class Diagram_Editor(scene.Window):
     def __init__(self, view):
         super().__init__(Diagram_Item(view))
         self.view = view
+
+    # called by scene.View
+    def mouse_move(self, event):
+        diagram = self.scene_item
+        if diagram.connection_in_progress_from:
+            global_pos = event.globalPos()
+            view_pos = self.scene_view.mapFromGlobal(global_pos)
+            scene_pos = self.scene_view.mapToScene(view_pos)
+            diagram_pos = diagram.mapFromScene(scene_pos)
+            x1 = diagram.connection_in_progress_line.line().x1()
+            y1 = diagram.connection_in_progress_line.line().y1()
+            diagram.connection_in_progress_line.setLine(
+                x1, y1, diagram_pos.x(), diagram_pos.y())
+        super().mouseMoveEvent(event)
         
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
