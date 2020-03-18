@@ -7,11 +7,13 @@ from ... import diagram
 
 import adaptagrams as avoid
 
-from qtpy.QtCore import QRectF, Qt
-from qtpy.QtGui import QBrush, QColor, QPainterPath, QPen
+from qtpy.QtCore import QPointF, QRectF, Qt
+from qtpy.QtGui import QBrush, QColor, QPainterPath, QPen, QPolygonF
 from qtpy.QtWidgets import (
-    QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsRectItem,
-    QGraphicsTextItem)
+    QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsPolygonItem,
+    QGraphicsRectItem, QGraphicsTextItem)
+
+from math import sqrt
 
 class Title(QGraphicsTextItem):
     def start_editing(self):
@@ -764,6 +766,8 @@ class Connection_Item(QGraphicsPathItem):
         self.setZValue(-10)
         self._set_default_appearance()
         self.setFlag(self.ItemIsFocusable)
+        self.arrow = QGraphicsPolygonItem()
+        self.arrow.setBrush(QBrush(Qt.black))
 
     def _set_default_appearance(self):
         self.setPen(QPen(Qt.black,2))
@@ -863,7 +867,35 @@ class Connection_Item(QGraphicsPathItem):
                 else:
                     self.path.moveTo(point.x, point.y)
             self.setPath(self.path)
-        
+
+            sink = self._sink_ui
+            entry_from = "L"
+            x = 0
+            if route.at(route.size()-1).x < route.at(route.size()-2).x:
+                entry_from = "R"
+                x = sink.parentItem().rect().width()
+            y = sink.y() + sink.rect().height() / 2.0            
+            p = self.mapToParent(
+                self.mapFromScene(sink.parentItem().mapToScene(x, y)))
+            xc, yc = p.x(), p.y()
+            arrow_h = 8
+            arrow_y = arrow_h/2.0
+            arrow_x = sqrt(arrow_h*arrow_h - arrow_y*arrow_y)
+            poly = QPolygonF()
+            if entry_from == "L":
+                poly << QPointF(xc-arrow_x,yc)
+                poly << QPointF(xc-arrow_x, yc+arrow_y)
+                poly << QPointF(xc, yc)
+                poly << QPointF(xc-arrow_x, yc-arrow_y)
+                poly << QPointF(xc-arrow_x,yc)
+            else:
+                poly << QPointF(xc+arrow_x,yc)
+                poly << QPointF(xc+arrow_x, yc+arrow_y)
+                poly << QPointF(xc, yc)
+                poly << QPointF(xc+arrow_x, yc-arrow_y)
+                poly << QPointF(xc+arrow_x,yc)
+            self.arrow.setPolygon(poly)
+            
     def setParentItem(self, parent_item):
         super().setParentItem(parent_item)
         self._update_avoid()
@@ -939,6 +971,7 @@ class Diagram_Item(QGraphicsItem):
     def add_connection(self, connection):
         c_ui = Connection_Item(connection, self)
         c_ui.setParentItem(self)
+        c_ui.arrow.setParentItem(self)
         self._connection_items.append(c_ui)
         return c_ui
 
@@ -946,6 +979,7 @@ class Diagram_Item(QGraphicsItem):
         self.avoid_router.deleteConnector(c_ui.avoid_conn)
         self._connection_items.remove(c_ui)
         c_ui.setParentItem(None)
+        c_ui.arrow.setParentItem(None)
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
