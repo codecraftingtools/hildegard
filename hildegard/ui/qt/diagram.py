@@ -710,9 +710,9 @@ class Block_Item(QGraphicsRectItem):
                 
             # Footer area
             avoid_rect = avoid.AvoidRectangle(
-                avoid.Point(self.x(),
+                avoid.Point(self.x() - self.parentItem().pin_length,
                             self.y() + r.height() - self._footer_height),
-                avoid.Point(self.x() + r.width(),
+                avoid.Point(self.x() + r.width() + self.parentItem().pin_length,
                             self.y() + r.height()))
             if self._footer_avoid_shape is None:
                 self._footer_avoid_shape = avoid.ShapeRef(
