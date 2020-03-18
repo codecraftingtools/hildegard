@@ -762,6 +762,8 @@ class Connection_Item(QGraphicsPathItem):
         self._source_ui = self._find_ui(parent, connection.source)
         self._sink_ui = self._find_ui(parent, connection.sink)
         self.avoid_conn = None
+        self._is_bidir = False
+        self._duplicate = None
         self.update_endpoints()
         self.setZValue(-10)
         self.arrow = QGraphicsPolygonItem()
@@ -822,7 +824,10 @@ class Connection_Item(QGraphicsPathItem):
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
             src = avoid.ConnEnd(avoid.Point(self.x1, self.y1))
-            dest = avoid.ConnEnd(avoid.Point(self.x2, self.y2))
+            if self.isVisible():
+                dest = avoid.ConnEnd(avoid.Point(self.x2, self.y2))
+            else:
+                dest = src # Don't route duplicate connection
             if self.avoid_conn is None:
                 self.avoid_conn = avoid.ConnRef(avoid_router, src, dest)
             else:
@@ -877,6 +882,11 @@ class Connection_Item(QGraphicsPathItem):
             if route.at(route.size()-1).x < route.at(route.size()-2).x:
                 entry_from = "R"
                 x = sink.parentItem().rect().width()
+            if self._duplicate:
+                route = self._duplicate.avoid_conn.displayRoute()
+                if route.at(0).x < route.at(1).x:
+                    entry_from = "R"
+                    x = sink.parentItem().rect().width()
             y = sink.y() + sink.rect().height() / 2.0            
             p = self.mapToParent(
                 self.mapFromScene(sink.parentItem().mapToScene(x, y)))
@@ -976,6 +986,7 @@ class Diagram_Item(QGraphicsItem):
         c_ui.setParentItem(self)
         c_ui.arrow.setParentItem(self)
         self._connection_items.append(c_ui)
+        self._hide_duplicate_connections()
         return c_ui
 
     def remove_connection(self, c_ui):
@@ -983,6 +994,7 @@ class Diagram_Item(QGraphicsItem):
         self._connection_items.remove(c_ui)
         c_ui.setParentItem(None)
         c_ui.arrow.setParentItem(None)
+        self._hide_duplicate_connections()
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
@@ -1019,6 +1031,21 @@ class Diagram_Item(QGraphicsItem):
         self.avoid_router.processTransaction()
         for c_ui in self._connection_items:
             c_ui.update_from_avoid_router()
+
+    def _hide_duplicate_connections(self):
+        processed_connections = []
+        for c in self._connection_items:
+            c._is_bidir = False
+            c._duplicate = None
+            c.show()
+            for p in processed_connections:
+                if (c._sink_ui == p._source_ui and
+                    c._source_ui == p._sink_ui):
+                    c.hide()
+                    p._is_bidir = True
+                    c._duplicate = p
+            processed_connections.append(c)
+        self.process_avoid_updates()
         
 class Diagram_Editor(scene.Window):
     def __init__(self, view):
