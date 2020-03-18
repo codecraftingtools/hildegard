@@ -8,7 +8,8 @@ from ... import diagram
 import adaptagrams as avoid
 
 from qtpy.QtCore import QPointF, QRectF, Qt
-from qtpy.QtGui import QBrush, QColor, QPainterPath, QPen, QPolygonF
+from qtpy.QtGui import (
+    QBrush, QColor, QPainterPath, QPainterPathStroker, QPen, QPolygonF)
 from qtpy.QtWidgets import (
     QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsPolygonItem,
     QGraphicsRectItem, QGraphicsTextItem)
@@ -764,12 +765,23 @@ class Connection_Item(QGraphicsPathItem):
         self.avoid_conn = None
         self._is_bidir = False
         self._duplicate = None
+        self.path = QPainterPath()
+        self.stroker_path = QPainterPath()
+        self.stroker = QPainterPathStroker()
+        self.stroker.setWidth(8)
         self.update_endpoints()
         self.setZValue(-10)
         self.arrow = QGraphicsPolygonItem()
         self._set_default_appearance()
         self.setFlag(self.ItemIsFocusable)
 
+    def shape(self):
+        return self.stroker_path
+    
+    def setPath(self, path):
+        super().setPath(path)
+        self.stroker_path = self.stroker.createStroke(path)
+        
     def _set_default_appearance(self):
         self.setPen(QPen(Qt.black,2))
         self.arrow.setPen(QPen(Qt.black))
