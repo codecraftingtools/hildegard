@@ -764,16 +764,19 @@ class Connection_Item(QGraphicsPathItem):
         self.avoid_conn = None
         self.update_endpoints()
         self.setZValue(-10)
+        self.arrow = QGraphicsPolygonItem()
         self._set_default_appearance()
         self.setFlag(self.ItemIsFocusable)
-        self.arrow = QGraphicsPolygonItem()
-        self.arrow.setBrush(QBrush(Qt.black))
 
     def _set_default_appearance(self):
         self.setPen(QPen(Qt.black,2))
+        self.arrow.setPen(QPen(Qt.black))
+        self.arrow.setBrush(QBrush(Qt.black))
         
     def focusInEvent(self, event):
         self.setPen(QPen(Qt.red,2))
+        self.arrow.setPen(QPen(Qt.red))
+        self.arrow.setBrush(QBrush(Qt.red))
         super().focusInEvent(event)
         
     def focusOutEvent(self, event):
