@@ -763,8 +763,9 @@ class Connection_Item(QGraphicsPathItem):
         self._source_ui = self._find_ui(parent, connection.source)
         self._sink_ui = self._find_ui(parent, connection.sink)
         self.avoid_conn = None
-        self._is_bidir = False
-        self._duplicate = None
+        self._duplicate_is = None
+        self._duplicate_of = None
+        self._switch_direction_count = 0
         self.path = QPainterPath()
         self.stroker_path = QPainterPath()
         self.stroker = QPainterPathStroker()
@@ -801,6 +802,28 @@ class Connection_Item(QGraphicsPathItem):
         key = event.key()
         if (key == Qt.Key_Delete):
             self.parentItem().remove_connection(self)
+            return
+        elif (key == Qt.Key_D):
+            if self._duplicate_is:
+                self.parentItem().remove_connection(self._duplicate_is)
+            elif self._switch_direction_count < 1:
+                sink = self._connection.sink
+                self._connection.sink = self._connection.source
+                self._connection.source = sink
+                self._source_ui = self._find_ui(
+                    self.parentItem(), self._connection.source)
+                self._sink_ui = self._find_ui(
+                    self.parentItem(), self._connection.sink)
+                self._switch_direction_count = 1
+            else:
+                conn = diagram.Connection(
+                    source=self._connection.sink,
+                    sink=self._connection.source,
+                )
+                self.parentItem().add_connection(conn)
+                self._switch_direction_count = 0
+            self.update_endpoints()
+            self.parentItem()._hide_duplicate_connections()
             return
         super().keyPressEvent(event)
         
@@ -894,8 +917,8 @@ class Connection_Item(QGraphicsPathItem):
             if route.at(route.size()-1).x < route.at(route.size()-2).x:
                 entry_from = "R"
                 x = sink.parentItem().rect().width()
-            if self._duplicate:
-                route = self._duplicate.avoid_conn.displayRoute()
+            if self._duplicate_of:
+                route = self._duplicate_of.avoid_conn.displayRoute()
                 if route.at(0).x < route.at(1).x:
                     entry_from = "R"
                     x = sink.parentItem().rect().width()
@@ -1047,15 +1070,15 @@ class Diagram_Item(QGraphicsItem):
     def _hide_duplicate_connections(self):
         processed_connections = []
         for c in self._connection_items:
-            c._is_bidir = False
-            c._duplicate = None
+            c._duplicate_is = None
+            c._duplicate_of = None
             c.show()
             for p in processed_connections:
                 if (c._sink_ui == p._source_ui and
                     c._source_ui == p._sink_ui):
                     c.hide()
-                    p._is_bidir = True
-                    c._duplicate = p
+                    p._duplicate_is = c
+                    c._duplicate_of = p
             processed_connections.append(c)
         self.process_avoid_updates()
         
