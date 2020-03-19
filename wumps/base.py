@@ -1,6 +1,7 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
 from collections import OrderedDict
+import sys
 
 class Anonymous_Elements_Base(list):
     pass
@@ -31,10 +32,11 @@ def elements(element_type=None, attr_name=None, anonymous=False):
 
 class Attribute:
     def __init__(self, name, type=None, alias=None, aliases=None, save=None,
-                 **kw):
+                 reference=None, **kw):
         self.name = name
         self.type = type
         self.save = save
+        self.reference = reference
         self.aliases = list(aliases) if aliases is not None else []
         if alias is not None:
             self.aliases.append(alias)
@@ -81,7 +83,13 @@ class Entity_Type(type):
             if new_a.save is None:
                 new_a.save = existing_a.save
             else:
-                raise Exception("attribute type has already been specified")
+                raise Exception("attribute save has already been specified")
+        if existing_a.reference is not None:
+            if new_a.reference is None:
+                new_a.reference = existing_a.reference
+            else:
+                raise Exception(
+                    "attribute reference has already been specified")
         if existing_a.fixed_value:
             if new_a.fixed_value:
                 raise Exception("attribute value has already been specified")
@@ -141,3 +149,45 @@ class Entity(metaclass=Entity_Type):
             self.__setitem__(key, value)
         else:
             super().__setattr__(key, value)
+
+def _find_referenced_entities(item, referenced_items):
+    if isinstance(item, Entity):
+        for name, value in item._attrs.items():
+            if type(item)._attr_info[name].reference is True:
+                referenced_items.append(value)
+            if isinstance(value, Entity):
+                _find_referenced_entities(value, referenced_items)
+            elif isinstance(value, list):
+                for list_item in value:
+                    _find_referenced_entities(list_item, referenced_items)
+            elif isinstance(value, OrderedDict):
+                for subname, subvalue in value.items():
+                    _find_referenced_entities(subvalue, referenced_items)
+    return referenced_items
+    
+def save(item, level=0, file=None, found=None):
+    if found is None:
+        found = _find_referenced_entities(item, [])
+    space = "  "
+    if file is None:
+        file = sys.stdout
+    if isinstance(item, Entity):
+        file.write(f"\n{space*level}- {item.__class__.__name__}:\n")
+        if item in found:
+            file.write(f"{space*(level+2)}_id: {id(item)}\n")
+        for name, value in item._attrs.items():
+            if value is None or value is "":
+                pass
+            elif type(item)._attr_info[name].reference is True:
+                file.write(f"{space*(level+2)}{name}: {id(value)}\n")
+            elif type(item)._attr_info[name].save is not False:
+                file.write(f"{space*(level+2)}{name}:")
+                save(value, level=level+3, file=file, found=found)
+    elif isinstance(item, list):
+        for list_item in item:
+            save(list_item, level=level, file=file, found=found)
+    elif isinstance(item, OrderedDict):
+        for name, value in item.items():
+            save(value, level=level, file=file, found=found)
+    else:
+        file.write(f" {item}\n")

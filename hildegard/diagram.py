@@ -23,8 +23,8 @@ class Block(Symbol):
 class Connection(View):
     _attributes = (
         Attribute("subject", component.Channel, alias="channel"),
-        Attribute("source", Connector),
-        Attribute("sink", Connector),
+        Attribute("source", Connector, reference=True),
+        Attribute("sink", Connector, reference=True),
     )
 
 class Diagram(View):

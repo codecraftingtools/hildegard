@@ -4,7 +4,7 @@ from wumps import Attribute, Entity
 
 class View(Entity):
     _attributes = (
-        Attribute("subject"),
+        Attribute("subject", save=False), # Remove save=False later
         Attribute("widget", save=False),
     )
     def __init__(self, *args, **kw):

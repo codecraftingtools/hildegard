@@ -3,6 +3,7 @@
 from .  import diagram, scene
 from ...diagram import Block, Diagram
 from ...common import Environment
+import wumps
 
 from qtpy.QtWidgets import (
     QAction, QApplication, QGraphicsItem, QMainWindow, QTabWidget, qApp
@@ -27,6 +28,14 @@ class Main_Window(QMainWindow):
         exit_action.setStatusTip("Exit Hildegard")
         exit_action.triggered.connect(qApp.quit)
         file_menu.addAction(exit_action)
+        
+        save_action = QAction("&Save", self)
+        save_action.setShortcut("Ctrl+S")
+        save_action.setStatusTip("Save")
+        save_action.triggered.connect(
+            lambda: env.save(self.tabs.currentWidget().view))
+        file_menu.addAction(save_action)
+        toolbar.addAction(save_action)
 
         fit_action = QAction("Fit", self)
         fit_action.setStatusTip("Fit in view")
@@ -98,6 +107,9 @@ class GUI_Environment(Environment):
         if not self.viewing():
             self._app.quit()
 
+    def save(self, view):
+        wumps.save(view)
+            
     def export(self, view, format):
         if (view.widget is not None and
             format == "svg" and
