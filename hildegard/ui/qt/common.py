@@ -42,6 +42,12 @@ class Main_Window(QMainWindow):
         file_menu.addAction(save_action)
         toolbar.addAction(save_action)
 
+        save_as_action = QAction("&Save As...", self)
+        save_as_action.setStatusTip("Save As...")
+        save_as_action.triggered.connect(
+            lambda: env.save_as(self.tabs.currentWidget().view))
+        file_menu.addAction(save_as_action)
+
         fit_action = QAction("Fit", self)
         fit_action.setStatusTip("Fit in view")
         fit_action.triggered.connect(
@@ -119,14 +125,22 @@ class GUI_Environment(Environment):
         if not self.viewing():
             self._app.quit()
 
+    def _set_new_file_name(self):
+        file_name, selected_filter = QFileDialog.getSaveFileName(
+            self._main_window, caption="Save Environment",
+            filter="YAML Block Diagram (YBD) Files (*.ybd)")
+        if file_name:
+            self._file_name = file_name
+            self._main_window._set_title()
+    
+    def save_as(self, view):
+        self._set_new_file_name()
+        if self._file_name:
+            self.save(view)
+            
     def save(self, view):
         if not self._file_name:
-            file_name, selected_filter = QFileDialog.getSaveFileName(
-                view.widget, caption="Save Environment",
-                filter="YAML Block Diagram (YBD) Files (*.ybd)")
-            if file_name:
-                self._file_name = file_name
-                self._main_window._set_title()
+            self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
             
@@ -135,7 +149,7 @@ class GUI_Environment(Environment):
             format == "svg" and
             hasattr(view.widget, "scene")):
             file_name, selected_filter = QFileDialog.getSaveFileName(
-                view.widget, caption="Export to SVG",
+                self._main_window, caption="Export to SVG",
                 filter="SVG Files (*.svg)")
             if file_name:
                 scene.export_as_svg(view.widget.scene, file_name)
