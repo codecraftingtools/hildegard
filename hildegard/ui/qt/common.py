@@ -6,7 +6,8 @@ from ...common import Environment
 import wumps
 
 from qtpy.QtWidgets import (
-    QAction, QApplication, QGraphicsItem, QMainWindow, QTabWidget, qApp
+    QAction, QApplication, QFileDialog,  QGraphicsItem, QMainWindow,
+    QTabWidget, qApp
 )
 
 class Main_Window(QMainWindow):
@@ -114,4 +115,8 @@ class GUI_Environment(Environment):
         if (view.widget is not None and
             format == "svg" and
             hasattr(view.widget, "scene")):
-            scene.export_as_svg(view.widget.scene)
+            file_name, selected_filter = QFileDialog.getSaveFileName(
+                view.widget, caption="Export to SVG",
+                filter="SVG Files (*.svg)")
+            if file_name:
+                scene.export_as_svg(view.widget.scene, file_name)
