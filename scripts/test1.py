@@ -21,8 +21,6 @@ def main(args=None):
 
     if args is None:
         args = sys.argv
-
-    env = Environment()
     
     if1 = component.Interface(
         name="Interface 1",
@@ -98,12 +96,10 @@ def main(args=None):
             sink=d1.symbols[1].connectors[0],
         ),
     ])
-    env.open(d1)
 
     b1 = Block(
         instance=Block(instance=h1.subcomponents["SC2"]),
     )
-    env.open(b1)
     
     d2 = Diagram(
         hierarchy=h1,
@@ -111,6 +107,10 @@ def main(args=None):
             Block(instance=h1.subcomponents["SC2"]),
         )
     )
+    
+    env = Environment([d1, b1, d2])
+    env.open(d1)
+    env.open(b1)
     env.open(d2)
     
     return env.execute()

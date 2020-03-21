@@ -39,17 +39,11 @@ def main(argv=None):
         )
     else:
         entities = [Diagram(name="Untitled")]
-       
-    env = Environment()
+        
+    env = Environment(entities, file_name=args.input_file)
     for entity in entities:
         env.open(entity)
-    
-    # Test opening a stand-alone block
-    b1 = Block(
-        instance=Block(name="Block1"),
-    )
-    #env.open(b1)
-    
+        
     return env.execute()
 
 if __name__ == "__main__":

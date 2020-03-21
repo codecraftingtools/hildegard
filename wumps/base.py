@@ -165,9 +165,12 @@ def _find_referenced_entities(item, referenced_items):
             elif isinstance(value, OrderedDict):
                 for subname, subvalue in value.items():
                     _find_referenced_entities(subvalue, referenced_items)
+    elif isinstance(item, list):
+        for subitem in item:
+            _find_referenced_entities(subitem, referenced_items)
     return referenced_items
     
-def save(item, level=0, file=None, found=None):
+def save_to(item, level=0, file=None, found=None):
     if found is None:
         found = _find_referenced_entities(item, [])
     space = "  "
@@ -184,16 +187,28 @@ def save(item, level=0, file=None, found=None):
                 file.write(f"{space*(level+2)}{name}: {id(value)}\n")
             elif type(item)._attr_info[name].save is not False:
                 file.write(f"{space*(level+2)}{name}:")
-                save(value, level=level+3, file=file, found=found)
+                save_to(value, level=level+3, file=file, found=found)
     elif isinstance(item, list):
-        for list_item in item:
-            save(list_item, level=level, file=file, found=found)
+        if not item:
+            file.write(" []\n")
+        else:
+            for list_item in item:
+                save_to(list_item, level=level, file=file, found=found)
     elif isinstance(item, OrderedDict):
         for name, value in item.items():
-            save(value, level=level, file=file, found=found)
+            save_to(value, level=level, file=file, found=found)
     else:
         file.write(f" {item}\n")
 
+def save(item, file_name=None):
+    f = None
+    if file_name:
+        print(f"saving to file: {file_name}")
+        f = open(file_name, "w")
+    save_to(item, file=f)
+    if file_name:
+        f.close()
+    
 def _load_entities(tree, map, ids):
     entities = []
     for item in tree:
@@ -215,7 +230,7 @@ def _load_entities(tree, map, ids):
                     attrs[a_name] = ids[a_value]
                 else:
                     attrs[a_name] = a_value
-        entity= entity_type(**attrs)
+        entity = entity_type(**attrs)
         if entity_id is not None:
             ids[entity_id] = entity
         entities.append(entity)

@@ -15,7 +15,9 @@ class View(Entity):
 class Environment:
     _viewers = {}
     
-    def __init__(self, show=True):
+    def __init__(self, entities, file_name=None, show=True):
+        self._entities = list(entities)
+        self._file_name = file_name
         self._open_views = []
 
     def viewing(self, view=None):

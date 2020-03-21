@@ -10,11 +10,15 @@ from qtpy.QtWidgets import (
     QTabWidget, qApp
 )
 
+import os.path
+
 class Main_Window(QMainWindow):
     def __init__(self, env):
         super().__init__()
 
-        self.setWindowTitle("Hildegard")
+        self._env = env
+        
+        self._set_title()
         
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu("&File")
@@ -60,6 +64,13 @@ class Main_Window(QMainWindow):
         
         self.statusBar()
 
+    def _set_title(self):
+        if self._env._file_name:
+            base_name = os.path.basename(self._env._file_name)
+        else:
+            base_name = "Unsaved"
+        self.setWindowTitle(f"Hildegard: {base_name}")
+        
     def _fit_in_view(self, widget_in_tab):
         if hasattr(widget_in_tab, "scene_view"):
             widget_in_tab.scene_view.fit_all_in_view()
@@ -70,8 +81,8 @@ class GUI_Environment(Environment):
         Block: diagram.Block_Item,
     }
     
-    def __init__(self, show=True):
-        super().__init__(show=show)
+    def __init__(self, entities, file_name=None, show=True):
+        super().__init__(entities, file_name, show=show)
         self._app = QApplication([])
         self._main_window = Main_Window(self)
         if show:
@@ -109,7 +120,15 @@ class GUI_Environment(Environment):
             self._app.quit()
 
     def save(self, view):
-        wumps.save(view)
+        if not self._file_name:
+            file_name, selected_filter = QFileDialog.getSaveFileName(
+                view.widget, caption="Save Environment",
+                filter="YAML Block Diagram (YBD) Files (*.ybd)")
+            if file_name:
+                self._file_name = file_name
+                self._main_window._set_title()
+        if self._file_name:
+            wumps.save(self._entities, file_name=self._file_name)
             
     def export(self, view, format):
         if (view.widget is not None and
