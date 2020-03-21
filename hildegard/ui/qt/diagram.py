@@ -765,7 +765,7 @@ class Connection_Item(QGraphicsPathItem):
         self.avoid_conn = None
         self._duplicate_is = None
         self._duplicate_of = None
-        self._switch_direction_count = 0
+        self._switch_direction_count = 1
         self.path = QPainterPath()
         self.stroker_path = QPainterPath()
         self.stroker = QPainterPathStroker()
@@ -804,28 +804,40 @@ class Connection_Item(QGraphicsPathItem):
             self.parentItem().remove_connection(self)
             return
         elif (key == Qt.Key_D):
-            if self._duplicate_is:
-                self.parentItem().remove_connection(self._duplicate_is)
-            elif self._switch_direction_count < 1:
-                sink = self._connection.sink
-                self._connection.sink = self._connection.source
-                self._connection.source = sink
-                self._source_ui = self._find_ui(
-                    self.parentItem(), self._connection.source)
-                self._sink_ui = self._find_ui(
-                    self.parentItem(), self._connection.sink)
-                self._switch_direction_count = 1
-            else:
-                conn = diagram.Connection(
-                    source=self._connection.sink,
-                    sink=self._connection.source,
-                )
-                self.parentItem().add_connection(conn)
-                self._switch_direction_count = 0
-            self.update_endpoints()
-            self.parentItem()._hide_duplicate_connections()
+            self._switch_direction()
             return
         super().keyPressEvent(event)
+
+    def _switch_direction(self):
+        if self._duplicate_is:
+            self.parentItem().remove_connection(self._duplicate_is)
+            self._switch_direction_count = 0
+        elif self._switch_direction_count < 2:
+            sink = self._connection.sink
+            self._connection.sink = self._connection.source
+            self._connection.source = sink
+            self._source_ui = self._find_ui(
+                self.parentItem(), self._connection.source)
+            self._sink_ui = self._find_ui(
+                self.parentItem(), self._connection.sink)
+            self._switch_direction_count += 1
+        else:
+            conn = diagram.Connection(
+                source=self._connection.sink,
+                sink=self._connection.source,
+            )
+            self.parentItem().add_connection(conn)
+            self._switch_direction_count = 3
+        self.update_endpoints()
+        self.parentItem()._hide_duplicate_connections()
+        if self._switch_direction_count == 0:
+            self._switch_direction()
+            
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._switch_direction()
+            return # Do not call mousePressEvent, will pass on to diagram
+        super().mouseDoubleClickEvent(event)
         
     def _find_ui(self, parent, c):
         result = None
