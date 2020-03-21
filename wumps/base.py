@@ -1,5 +1,7 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
+import yaml
+
 from collections import OrderedDict
 import sys
 
@@ -191,3 +193,36 @@ def save(item, level=0, file=None, found=None):
             save(value, level=level, file=file, found=found)
     else:
         file.write(f" {item}\n")
+
+def _load_entities(tree, map, ids):
+    entities = []
+    for item in tree:
+        entity_type_name = list(item.keys())[0]
+        entity_type = map[entity_type_name]
+        value = item[entity_type_name]
+        attrs = {}
+        entity_id = None
+        for a_name, a_value in value.items():
+            if a_name == "_id":
+                entity_id = a_value
+                continue
+            if isinstance(a_value, list):
+                attrs[a_name] = _load_entities(a_value, map, ids)
+            elif isinstance(a_value, dict):
+                pass
+            else:
+                if entity_type._attr_info[a_name].reference is True:
+                    attrs[a_name] = ids[a_value]
+                else:
+                    attrs[a_name] = a_value
+        entity= entity_type(**attrs)
+        if entity_id is not None:
+            ids[entity_id] = entity
+        entities.append(entity)
+    return entities
+
+def load(file_name, map):
+    ids = {}
+    text = open(file_name).read()
+    tree = yaml.load(text)
+    return _load_entities(tree, map, ids)

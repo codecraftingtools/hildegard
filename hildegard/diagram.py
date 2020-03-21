@@ -14,7 +14,8 @@ class Connector(View):
 class Symbol(View):
     _attributes = (
         Attribute("subject", component.Instance, alias="instance"),
-        Attribute("connectors", elements(Connector, "connector")),
+        Attribute("connectors",
+                  elements(Connector, "connector", anonymous=True)),
     )
 
 class Block(Symbol):
@@ -30,7 +31,7 @@ class Connection(View):
 class Diagram(View):
     _attributes = (
         Attribute("subject", component.Hierarchy, alias="hierarchy"),
-        Attribute("symbols", elements(Symbol, "symbol")),
+        Attribute("symbols", elements(Symbol, "symbol", anonymous=True)),
         Attribute("connections",
                   elements(Connection, "connection", anonymous=True)),
     )

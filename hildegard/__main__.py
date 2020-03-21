@@ -2,103 +2,55 @@
 
 from hildegard.diagram import Block, Connector, Connection, Diagram
 from hildegard import Environment
-from pidgen import component
+import wumps
 
+import argparse
 import sys
 
-def main(args=None):
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "input_file",
+        metavar="FILE",
+        nargs="?",
+        default = None,
+        help="Input file to open",
+    )
+    return parser
+
+def main(argv=None):
     global env # must be global to keep program from hanging on exit
 
-    if args is None:
-        args = sys.argv
-
+    if argv is None:
+        argv = sys.argv[1:]
+        
+    parser = create_parser()
+    args = parser.parse_args(argv)
+    
+    if args.input_file:
+        entities = wumps.load(
+            args.input_file,
+            map={
+                "Diagram": Diagram,
+                "Block": Block,
+                "Connector": Connector,
+                "Connection": Connection,
+            }
+        )
+    else:
+        entities = [Diagram(name="Untitled")]
+       
     env = Environment()
+    for entity in entities:
+        env.open(entity)
     
-    if1 = component.Interface(
-        name="Interface 1",
-        ports=(
-            ("Port 1", component.Port(name="Port 1")),
-            ("Port 2", component.Port(name="Port 2")),
-        )
-    )
-    
-    im1 = component.Implementation(
-        name="Implementation 1",
-        interface=if1,
-    )
-    
-    h1 = component.Hierarchy(
-        name="Component 1",
-        subcomponents=(
-            ("Sub1", component.Instance(
-                interface=if1,
-                implementation=im1,
-            )),
-            ("Sub2", component.Instance(
-                interface=if1,
-                implementation=im1,
-            )),
-        )
-    )
-
-    d1 = Diagram(
-        hierarchy=h1,
-        symbols=(
-            ("SC1", Block(
-                instance=h1.subcomponents["Sub1"],
-                connectors=(
-                    ("Connector 1", Connector(
-                        port=if1.ports["Port 1"], row=0,
-                    )),
-                    ("Connector 2", Connector(
-                        port=if1.ports["Port 2"], row=1,
-                    )),
-                    ("Connector 3", Connector(
-                        port=if1.ports["Port 2"], row=2,
-                    )),
-                )
-            )),
-            ("SC2", Block(
-                instance=h1.subcomponents["Sub2"],
-                connectors=(
-                    ("Connector 1", Connector(
-                        port=if1.ports["Port 1"], row=0,
-                    )),
-                    ("Connector 2", Connector(
-                        port=if1.ports["Port 2"], row=1,
-                    )),
-                )
-            )),
-        )
-    )
-    d1.connections.extend([
-        Connection(
-            channel=component.Channel(),
-            source=d1.symbols["SC1"].connectors["Connector 2"],
-            sink=d1.symbols["SC2"].connectors["Connector 1"],
-        ),
-        Connection(
-            channel=component.Channel(),
-            source=d1.symbols["SC1"].connectors["Connector 3"],
-            sink=d1.symbols["SC2"].connectors["Connector 2"],
-        ),
-    ])
-    env.open(d1)
-
+    # Test opening a stand-alone block
     b1 = Block(
-        instance=Block(instance=h1.subcomponents["Sub2"]),
+        instance=Block(name="Block1"),
     )
-    env.open(b1)
-    
-    d2 = Diagram(
-        hierarchy=h1,
-        symbols=(
-            ("MySC2", Block(instance=h1.subcomponents["Sub2"])),
-        )
-    )
-    env.open(d2)
+    #env.open(b1)
     
     return env.execute()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

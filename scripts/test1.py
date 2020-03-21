@@ -40,11 +40,11 @@ def main(args=None):
     h1 = component.Hierarchy(
         name="Component 1",
         subcomponents=(
-            ("Sub1", component.Instance(
+            ("SC1", component.Instance(
                 interface=if1,
                 implementation=im1,
             )),
-            ("Sub2", component.Instance(
+            ("SC2", component.Instance(
                 interface=if1,
                 implementation=im1,
             )),
@@ -54,56 +54,61 @@ def main(args=None):
     d1 = Diagram(
         hierarchy=h1,
         symbols=(
-            ("SC1", Block(
-                instance=h1.subcomponents["Sub1"],
+            Block(
+                instance=h1.subcomponents["SC1"],
                 connectors=(
-                    ("Connector 1", Connector(
+                    Connector(
+                        name="Connector 1",
                         port=if1.ports["Port 1"], row=0,
-                    )),
-                    ("Connector 2", Connector(
+                    ),
+                    Connector(
+                        name="Connector 2",
                         port=if1.ports["Port 2"], row=1,
-                    )),
-                    ("Connector 3", Connector(
+                    ),
+                    Connector(
+                        name="Connector 3",
                         port=if1.ports["Port 2"], row=2,
-                    )),
+                    ),
                 )
-            )),
-            ("SC2", Block(
-                instance=h1.subcomponents["Sub2"],
+            ),
+            Block(
+                instance=h1.subcomponents["SC2"],
                 connectors=(
-                    ("Connector 1", Connector(
+                    Connector(
+                        name="Connector 1",
                         port=if1.ports["Port 1"], row=0,
-                    )),
-                    ("Connector 2", Connector(
+                    ),
+                    Connector(
+                        name="Connector 2",
                         port=if1.ports["Port 2"], row=1,
-                    )),
+                    ),
                 )
-            )),
+            )
         )
     )
     d1.connections.extend([
         Connection(
             channel=component.Channel(),
-            source=d1.symbols["SC1"].connectors["Connector 2"],
-            sink=d1.symbols["SC2"].connectors["Connector 1"],
+            source=d1.symbols[0].connectors[2],
+            sink=d1.symbols[1].connectors[1],
         ),
         Connection(
             channel=component.Channel(),
-            source=d1.symbols["SC1"].connectors["Connector 3"],
-            sink=d1.symbols["SC2"].connectors["Connector 2"],
+            source=d1.symbols[0].connectors[1],
+            sink=d1.symbols[1].connectors[0],
         ),
     ])
     env.open(d1)
 
     b1 = Block(
-        instance=Block(instance=h1.subcomponents["Sub2"]),
+        instance=Block(instance=h1.subcomponents["SC2"]),
     )
     env.open(b1)
     
     d2 = Diagram(
         hierarchy=h1,
         symbols=(
-            ("MySC2", Block(instance=h1.subcomponents["Sub2"])),
+            Block(instance=h1.subcomponents["SC2"]),
         )
     )
     env.open(d2)

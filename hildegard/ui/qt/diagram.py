@@ -209,7 +209,7 @@ class Block_Item(QGraphicsRectItem):
         cl.setPen(QPen(Qt.NoPen))
 
         self._connectors = []
-        for i, (c_name, c) in enumerate(block.connectors.items()):
+        for i, c in enumerate(block.connectors):
             self.add_connector(c, quick=True)
             
         rl = self._receptor_layer = QGraphicsRectItem(self.rect())
@@ -968,8 +968,7 @@ class Diagram_Item(QGraphicsItem):
         self.pin_length = 10.0
         self._connection_items = []
         self._block_items = []
-        for i, (s_name, s) in enumerate(
-                self.view.symbols.items()):
+        for i, s in enumerate(self.view.symbols):
             s_ui = self.add_block(s, debug=False)
             s_ui.moveBy(200*i,0)
         for c in self.view.connections:
