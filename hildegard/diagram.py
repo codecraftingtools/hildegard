@@ -16,10 +16,15 @@ class Symbol(View):
         Attribute("subject", component.Instance, alias="instance"),
         Attribute("connectors",
                   elements(Connector, "connector", anonymous=True)),
+        Attribute("x", float),
+        Attribute("y", float),
     )
 
 class Block(Symbol):
-    _attributes = ()
+    _attributes = (
+        Attribute("width", float),
+        Attribute("height", float),
+    )
 
 class Connection(View):
     _attributes = (

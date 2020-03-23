@@ -375,6 +375,7 @@ class Block_Item(QGraphicsRectItem):
         self._connectors.remove(connector)
         connector.setParentItem(None)
         self._update_geometry()
+        self._block.connectors.remove(connector._connector)
         
     def add_connector(self, connector, quick=False):
         new_item = Connector_Item(
@@ -385,6 +386,8 @@ class Block_Item(QGraphicsRectItem):
         if not quick:
             self._ensure_minimum_size()
         self._connectors.append(new_item)
+        if not connector in self._block.connectors:
+            self._block.connectors.append(connector)
         return new_item
     
     def add_new_connector_at(self, r, c, quick=False, edit=True):
@@ -625,6 +628,9 @@ class Block_Item(QGraphicsRectItem):
         self._resizer.update_geometry()
 
         self._update_avoid()
+
+        self._block.width = r.width()
+        self._block.height = r.height()
         
     def setRect(self, r):
         # Snap size to grid
@@ -750,6 +756,8 @@ class Block_Item(QGraphicsRectItem):
             return value
         elif change == self.ItemPositionHasChanged:
             self._update_avoid()
+            self._block.x = self.x()
+            self._block.y = self.y()
         return super().itemChange(change, value)
         
     def setParentItem(self, parent_item):
@@ -981,8 +989,14 @@ class Diagram_Item(QGraphicsItem):
         self._connection_items = []
         self._block_items = []
         for i, s in enumerate(self.view.symbols):
+            w = s.width
+            h = s.height
             s_ui = self.add_block(s, debug=False)
-            s_ui.moveBy(200*i,0)
+            s_ui.moveBy(s.x, s.y)
+            r = s_ui.rect()
+            r.setWidth(w)
+            r.setHeight(h)
+            s_ui.setRect(r)
         for c in self.view.connections:
             self.add_connection(c)
         self.process_avoid_updates()
@@ -1033,6 +1047,8 @@ class Diagram_Item(QGraphicsItem):
         c_ui.arrow.setParentItem(self)
         self._connection_items.append(c_ui)
         self._hide_duplicate_connections()
+        if not connection in self.view.connections:
+            self.view.connections.append(connection)
         return c_ui
 
     def remove_connection(self, c_ui):
@@ -1041,17 +1057,21 @@ class Diagram_Item(QGraphicsItem):
         c_ui.setParentItem(None)
         c_ui.arrow.setParentItem(None)
         self._hide_duplicate_connections()
+        self.view.connections.remove(c_ui._connection)
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
         s_ui.setParentItem(self)
         self._block_items.append(s_ui)
+        if not block in self.view.symbols:
+            self.view.symbols.append(block)
         return s_ui
     
     def remove_block(self, block):
         self._block_items.remove(block)
         block.remove_all_connectors()
         block.setParentItem(None)
+        self.view.symbols.remove(block._block)
         
     def mouse_pressed_in(self, source_item):
         # Allow diagram elements to know that the mouse was pressed
