@@ -7,7 +7,7 @@ import wumps
 
 from qtpy.QtWidgets import (
     QAction, QApplication, QFileDialog,  QGraphicsItem, QMainWindow,
-    QTabWidget, qApp
+    QMessageBox, QTabWidget, qApp
 )
 
 import os.path
@@ -18,7 +18,7 @@ class Main_Window(QMainWindow):
 
         self._env = env
         
-        self._set_title()
+        self.update_title()
         
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu("&File")
@@ -31,7 +31,7 @@ class Main_Window(QMainWindow):
         exit_action = QAction("E&xit Hildegard", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.setStatusTip("Exit Hildegard")
-        exit_action.triggered.connect(qApp.quit)
+        exit_action.triggered.connect(self.handle_exit)
         file_menu.addAction(exit_action)
         
         save_action = QAction("&Save", self)
@@ -42,20 +42,20 @@ class Main_Window(QMainWindow):
         file_menu.addAction(save_action)
         toolbar.addAction(save_action)
 
-        save_as_action = QAction("&Save As...", self)
+        save_as_action = QAction("Save &As...", self)
         save_as_action.setStatusTip("Save As...")
         save_as_action.triggered.connect(
             lambda: env.save_as(self.tabs.currentWidget().view))
         file_menu.addAction(save_as_action)
 
-        fit_action = QAction("Fit", self)
+        fit_action = QAction("&Fit", self)
         fit_action.setStatusTip("Fit in view")
         fit_action.triggered.connect(
             lambda: self._fit_in_view(self.tabs.currentWidget()))
         view_menu.addAction(fit_action)
         toolbar.addAction(fit_action)
         
-        export_svg_action = QAction("Export as SVG", self)
+        export_svg_action = QAction("Export as &SVG", self)
         export_svg_action.setStatusTip("Export current tab as an SVG file")
         export_svg_action.triggered.connect(
             lambda: env.export(self.tabs.currentWidget().view, format="svg"))
@@ -70,7 +70,15 @@ class Main_Window(QMainWindow):
         
         self.statusBar()
 
-    def _set_title(self):
+    def handle_exit(self):
+        if self._env._ok_to_exit():
+            qApp.quit()
+            
+    def closeEvent(self, event):
+        if not self._env._ok_to_exit():
+            event.ignore()
+        
+    def update_title(self):
         if self._env._file_name:
             base_name = os.path.basename(self._env._file_name)
         else:
@@ -103,7 +111,32 @@ class GUI_Environment(Environment):
     def _remove_tab(self, view):
         self._main_window.tabs.removeTab(
             self._main_window.tabs.indexOf(view.widget))
-        
+
+    def _ok_to_exit(self, view=None):
+        if view:
+            is_modified = view.widget.scene_item.modified
+        else:
+            is_modified = False
+            for i in range(self._main_window.tabs.count()):
+                if self._main_window.tabs.widget(i).scene_item.modified:
+                    is_modified = True
+                    break
+        if is_modified:
+            mb = QMessageBox()
+            mb.setText("The project may have been modified.")
+            mb.setInformativeText("Do you want to save your changes?")
+            mb.setStandardButtons(
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            mb.setDefaultButton(QMessageBox.Save)
+            ans = mb.exec()
+            if ans == QMessageBox.Cancel:
+                return False
+            elif ans == QMessageBox.Save:
+                saved = self.save(None)
+                if not saved:
+                    return False
+        return True
+
     def open(self, view, show=True):
         added = super().open(view, show=show)
         if not added:
@@ -119,6 +152,8 @@ class GUI_Environment(Environment):
     def close(self, view):
         if not self.viewing(view):
             return
+        if not self._ok_to_exit(view):
+            return
         self._remove_tab(view)
         view.widget.close()
         super().close(view)
@@ -131,8 +166,8 @@ class GUI_Environment(Environment):
             filter="YAML Block Diagram (YBD) Files (*.ybd)")
         if file_name:
             self._file_name = file_name
-            self._main_window._set_title()
-    
+            self._main_window.update_title()
+
     def save_as(self, view):
         self._set_new_file_name()
         if self._file_name:
@@ -143,7 +178,8 @@ class GUI_Environment(Environment):
             self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
-            
+        return True if self._file_name else False
+    
     def export(self, view, format):
         if (view.widget is not None and
             format == "svg" and

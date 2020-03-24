@@ -172,7 +172,8 @@ class Block_Item(QGraphicsRectItem):
     def __init__(self, block, debug=False):
         self._block = block
         self._debug = debug
-
+        self.modified = False
+        
         self._base_zvalue = None
         self._top_zvalue = 1
         self._vpad = 5
@@ -256,6 +257,7 @@ class Block_Item(QGraphicsRectItem):
         self._ensure_minimum_size()
         self._set_default_appearance()
         self.set_editing_mode(self._editing)
+        self.modified = False
 
     def handle_connector_start_move(self, connector):
         self._start_move_connector_row = connector._connector.row
@@ -649,6 +651,7 @@ class Block_Item(QGraphicsRectItem):
         self._update_geometry()
 
     def _update_avoid(self):
+        self.modified = True
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
             r = self.rect()
@@ -972,6 +975,7 @@ class Diagram_Item(QGraphicsItem):
     def __init__(self, view):
         super().__init__()
         self.view = view
+        self.modified = False
         self.connection_in_progress_from = None
         self.connection_in_progress_line = None
         self.connect_on_double_click = True
@@ -1000,6 +1004,7 @@ class Diagram_Item(QGraphicsItem):
         for c in self.view.connections:
             self.add_connection(c)
         self.process_avoid_updates()
+        self.modified = False
 
     def start_connecting(self, c, event):
         self.connection_in_progress_from = c
@@ -1097,6 +1102,7 @@ class Diagram_Item(QGraphicsItem):
         self.avoid_router.processTransaction()
         for c_ui in self._connection_items:
             c_ui.update_from_avoid_router()
+        self.modified = True
 
     def _hide_duplicate_connections(self):
         processed_connections = []
