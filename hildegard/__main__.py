@@ -1,8 +1,7 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from hildegard.diagram import Block, Connector, Connection, Diagram
+from hildegard.diagram import Diagram
 from hildegard import Environment
-import wumps
 
 import argparse
 import sys
@@ -28,21 +27,13 @@ def main(argv=None):
     args = parser.parse_args(argv)
     
     if args.input_file:
-        entities = wumps.load(
-            args.input_file,
-            map={
-                "Diagram": Diagram,
-                "Block": Block,
-                "Connector": Connector,
-                "Connection": Connection,
-            }
-        )
+        source = args.input_file
     else:
-        entities = [Diagram(name="Untitled")]
+        source = [Diagram(name="Untitled")]
         
-    env = Environment(entities, file_name=args.input_file)
-    for entity in entities:
-        env.open(entity)
+    env = Environment(source)
+    for entity in env.entities():
+        env.view(entity)
         
     return env.execute()
 

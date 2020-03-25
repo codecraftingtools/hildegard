@@ -1,5 +1,6 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
+import wumps
 from wumps import Attribute, Entity
 
 class View(Entity):
@@ -15,11 +16,18 @@ class View(Entity):
 class Environment:
     _viewers = {}
     
-    def __init__(self, entities, file_name=None, show=True):
-        self._entities = list(entities)
-        self._file_name = file_name
+    def __init__(self, source, show=True):
+        self._entities = []
+        self._file_name = None
         self._open_views = []
+        if isinstance(source, str):
+            self._open(source)
+        else:
+            self._entities = list(source)
 
+    def entities(self):
+        return list(self._entities)
+    
     def viewing(self, view=None):
         if view is None:
             return True if self._open_views else False
@@ -29,7 +37,33 @@ class Environment:
     def execute(self):
         return 0
 
-    def open(self, view, show=True):
+    def open(self, file_name):
+        ret = self._open(file_name)
+        for entity in self._entities:
+            self.view(entity)
+        return ret
+    
+    def _open(self, file_name): # Not overloaded
+        from hildegard import diagram
+        ret = self.close_all()
+        if not ret:
+            return
+        print(f"opening: {file_name}")
+        self._file_name = file_name
+        self._entities = wumps.load(
+            file_name,
+            map={
+                "Diagram": diagram.Diagram,
+                "Block": diagram.Block,
+                "Connector": diagram.Connector,
+                "Connection": diagram.Connection,
+            }
+        )
+        
+    def view(self, view, show=True):
+        if not view in self._entities:
+            print("error: tried to view external entitiy")
+            return False
         if view.widget:
             return False
         if view in self._open_views:
@@ -41,6 +75,14 @@ class Environment:
     def close(self, view):
         self._open_views.remove(view)
         view.widget = None
-        
+        return True
+    
+    def close_all(self):
+        for view in list(self._open_views):
+            ret = self.close(view)
+            if not ret:
+                return False
+        return True
+    
     def export(self, view, format):
         pass

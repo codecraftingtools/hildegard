@@ -28,15 +28,21 @@ class Main_Window(QMainWindow):
         toolbar = self.addToolBar("Top")
         #toolbar.hide()
         
-        exit_action = QAction("E&xit Hildegard", self)
+        exit_action = QAction("E&xit", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.setStatusTip("Exit Hildegard")
         exit_action.triggered.connect(self.handle_exit)
         file_menu.addAction(exit_action)
         
+        open_action = QAction("&Open", self)
+        open_action.setShortcut("Ctrl+O")
+        open_action.setStatusTip("Open File")
+        open_action.triggered.connect(env.open)
+        file_menu.addAction(open_action)
+
         save_action = QAction("&Save", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save")
+        save_action.setStatusTip("Save File")
         save_action.triggered.connect(
             lambda: env.save(self.tabs.currentWidget().view))
         file_menu.addAction(save_action)
@@ -65,7 +71,7 @@ class Main_Window(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
-            lambda index: env.close(self.tabs.widget(index).view))
+            lambda index: env.close(self.tabs.widget(index).view, exit=True))
         self.setCentralWidget(self.tabs)
         
         self.statusBar()
@@ -95,8 +101,8 @@ class GUI_Environment(Environment):
         Block: diagram.Block_Item,
     }
     
-    def __init__(self, entities, file_name=None, show=True):
-        super().__init__(entities, file_name, show=show)
+    def __init__(self, source, show=True):
+        super().__init__(source, show=show)
         self._app = QApplication([])
         self._main_window = Main_Window(self)
         if show:
@@ -137,8 +143,21 @@ class GUI_Environment(Environment):
                     return False
         return True
 
-    def open(self, view, show=True):
-        added = super().open(view, show=show)
+    def open(self, file_name=None):
+        ret = self.close_all()
+        if not ret:
+            return
+        if not file_name:
+            file_name, selected_filter = QFileDialog.getOpenFileName(
+                self._main_window, caption="Open File",
+                filter="YAML Block Diagram (YBD) Files (*.ybd)")
+            if file_name:
+                self._file_name = file_name
+                self._main_window.update_title()
+                super().open(file_name)
+            
+    def view(self, view, show=True):
+        added = super().view(view, show=show)
         if not added:
             return False
         if isinstance(view.widget, QGraphicsItem):
@@ -149,17 +168,24 @@ class GUI_Environment(Environment):
             view.widget.show()
         return True
     
-    def close(self, view):
+    def close(self, view, exit=False):
         if not self.viewing(view):
-            return
+            return True
         if not self._ok_to_exit(view):
-            return
+            return False
         self._remove_tab(view)
         view.widget.close()
-        super().close(view)
-        if not self.viewing():
+        ret = super().close(view)
+        if not self.viewing() and exit:
             self._app.quit()
-
+        return ret
+    
+    def close_all(self, exit=False):
+        ret = super().close_all()
+        if not self.viewing() and exit:
+            self._app.quit()
+        return ret
+    
     def _set_new_file_name(self):
         file_name, selected_filter = QFileDialog.getSaveFileName(
             self._main_window, caption="Save Environment",

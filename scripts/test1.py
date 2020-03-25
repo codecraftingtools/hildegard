@@ -109,9 +109,9 @@ def main(args=None):
     )
     
     env = Environment([d1, b1, d2])
-    env.open(d1)
-    env.open(b1)
-    env.open(d2)
+    env.view(d1)
+    env.view(b1)
+    env.view(d2)
     
     return env.execute()
 
