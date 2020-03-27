@@ -9,6 +9,7 @@ class Window(QWidget):
     def __init__(self, item):
         super().__init__()
         
+        self._shown = False
         self.scene_item = item
         
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
@@ -27,6 +28,14 @@ class Window(QWidget):
             
         self.resize(800, 600)
 
+    def showEvent(self, event):
+        if not self._shown:
+            # Shift view to fit top-left corner
+            br = self.scene.itemsBoundingRect()
+            p = self.scene_view.mapToScene(0,0)
+            self.scene_view.translate(p.x() - br.x(), p.y() - br.y())
+            self._shown = True
+        
     def mousePressEvent(self, event):
         # Allow scene item to know that the mouse was pressed outside
         # of any item.
