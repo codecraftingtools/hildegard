@@ -1001,6 +1001,7 @@ class Diagram_Item(QGraphicsItem):
             r.setWidth(w)
             r.setHeight(h)
             s_ui.setRect(r)
+            s_ui._ensure_minimum_size()
         for c in self.view.connections:
             self.add_connection(c)
         self.process_avoid_updates()
