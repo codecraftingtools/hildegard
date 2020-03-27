@@ -5,6 +5,7 @@ from ...diagram import Block, Diagram
 from ...common import Environment
 import wumps
 
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QAction, QApplication, QFileDialog,  QGraphicsItem, QMainWindow,
     QMessageBox, QTabWidget, qApp
@@ -42,6 +43,8 @@ class Main_Window(QMainWindow):
 
         save_action = QAction("&Save", self)
         save_action.setShortcut("Ctrl+S")
+        save_action.setIcon(self.style().standardIcon(
+            self.style().SP_DialogSaveButton))
         save_action.setStatusTip("Save project")
         save_action.triggered.connect(
             lambda: env.save(self.tabs.currentWidget().view))
@@ -72,7 +75,6 @@ class Main_Window(QMainWindow):
         export_svg_action.triggered.connect(
             lambda: env.export(self.tabs.currentWidget().view, format="svg"))
         export_menu.addAction(export_svg_action)
-        toolbar.addAction(export_svg_action)
 
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
@@ -110,6 +112,7 @@ class GUI_Environment(Environment):
     def __init__(self, source, show=True):
         super().__init__(source, show=show)
         self._app = QApplication([])
+        self._app.setAttribute(Qt.AA_DontShowIconsInMenus, True)
         self._main_window = Main_Window(self)
         if show:
             self._main_window.show()
