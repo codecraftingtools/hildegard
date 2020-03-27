@@ -21,48 +21,54 @@ class Main_Window(QMainWindow):
         self.update_title()
         
         main_menu = self.menuBar()
-        file_menu = main_menu.addMenu("&File")
+        project_menu = main_menu.addMenu("&Project")
         view_menu = main_menu.addMenu("&View")
         export_menu = main_menu.addMenu("&Export")
 
         toolbar = self.addToolBar("Top")
         #toolbar.hide()
         
-        exit_action = QAction("E&xit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.setStatusTip("Exit Hildegard")
-        exit_action.triggered.connect(self.handle_exit)
-        file_menu.addAction(exit_action)
-        
-        open_action = QAction("&Open", self)
+        new_action = QAction("&New", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.setStatusTip("Create a new empty project")
+        new_action.triggered.connect(env.new)
+        project_menu.addAction(new_action)
+
+        open_action = QAction("&Open...", self)
         open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open File")
+        open_action.setStatusTip("Open an existing project")
         open_action.triggered.connect(env.open)
-        file_menu.addAction(open_action)
+        project_menu.addAction(open_action)
 
         save_action = QAction("&Save", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save File")
+        save_action.setStatusTip("Save project")
         save_action.triggered.connect(
             lambda: env.save(self.tabs.currentWidget().view))
-        file_menu.addAction(save_action)
+        project_menu.addAction(save_action)
         toolbar.addAction(save_action)
 
         save_as_action = QAction("Save &As...", self)
-        save_as_action.setStatusTip("Save As...")
+        save_as_action.setStatusTip("Save project under a new name")
         save_as_action.triggered.connect(
             lambda: env.save_as(self.tabs.currentWidget().view))
-        file_menu.addAction(save_as_action)
+        project_menu.addAction(save_as_action)
 
+        quit_action = QAction("&Quit", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.setStatusTip("Quit Hildegard")
+        quit_action.triggered.connect(self.handle_quit)
+        project_menu.addAction(quit_action)
+        
         fit_action = QAction("&Fit", self)
-        fit_action.setStatusTip("Fit in view")
+        fit_action.setStatusTip("Fit the entire scene to the viewport")
         fit_action.triggered.connect(
             lambda: self._fit_in_view(self.tabs.currentWidget()))
         view_menu.addAction(fit_action)
         toolbar.addAction(fit_action)
         
-        export_svg_action = QAction("Export as &SVG", self)
-        export_svg_action.setStatusTip("Export current tab as an SVG file")
+        export_svg_action = QAction("Export &SVG...", self)
+        export_svg_action.setStatusTip("Export the current tab as an SVG file")
         export_svg_action.triggered.connect(
             lambda: env.export(self.tabs.currentWidget().view, format="svg"))
         export_menu.addAction(export_svg_action)
@@ -71,17 +77,17 @@ class Main_Window(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
-            lambda index: env.close(self.tabs.widget(index).view, exit=True))
+            lambda index: env.close(self.tabs.widget(index).view, quit=True))
         self.setCentralWidget(self.tabs)
         
         self.statusBar()
 
-    def handle_exit(self):
-        if self._env._ok_to_exit():
+    def handle_quit(self):
+        if self._env._ok_to_quit():
             qApp.quit()
             
     def closeEvent(self, event):
-        if not self._env._ok_to_exit():
+        if not self._env._ok_to_quit():
             event.ignore()
         
     def update_title(self):
@@ -118,7 +124,7 @@ class GUI_Environment(Environment):
         self._main_window.tabs.removeTab(
             self._main_window.tabs.indexOf(view.widget))
 
-    def _ok_to_exit(self, view=None):
+    def _ok_to_quit(self, view=None):
         if view:
             is_modified = view.widget.scene_item.modified
         else:
@@ -143,6 +149,12 @@ class GUI_Environment(Environment):
                     return False
         return True
 
+    def new(self):
+        ret = self.close_all()
+        if not ret:
+            return
+        super().new()
+        
     def open(self, file_name=None):
         ret = self.close_all()
         if not ret:
@@ -168,21 +180,21 @@ class GUI_Environment(Environment):
             view.widget.show()
         return True
     
-    def close(self, view, exit=False):
+    def close(self, view, quit=False):
         if not self.viewing(view):
             return True
-        if not self._ok_to_exit(view):
+        if not self._ok_to_quit(view):
             return False
         self._remove_tab(view)
         view.widget.close()
         ret = super().close(view)
-        if not self.viewing() and exit:
+        if not self.viewing() and quit:
             self._app.quit()
         return ret
     
-    def close_all(self, exit=False):
+    def close_all(self, quit=False):
         ret = super().close_all()
-        if not self.viewing() and exit:
+        if not self.viewing() and quit:
             self._app.quit()
         return ret
     

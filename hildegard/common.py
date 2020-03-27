@@ -37,6 +37,16 @@ class Environment:
     def execute(self):
         return 0
 
+    def new(self):
+        from hildegard.diagram import Diagram
+        ret = self.close_all()
+        if not ret:
+            return
+        self._file_name = None
+        d = Diagram(name="Untitled")
+        self._entities = [d]
+        self.view(d)
+        
     def open(self, file_name):
         ret = self._open(file_name)
         for entity in self._entities:
