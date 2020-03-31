@@ -32,10 +32,22 @@ class Window(QWidget):
         self.menus.append(view_menu)
         
         fit_action = QAction("&Fit", self)
-        fit_action.setShortcut("f")
+        fit_action.setShortcut("0")
         fit_action.setStatusTip("Fit the entire scene to the viewport")
         fit_action.triggered.connect(self.scene_view.fit_all_in_view)
         view_menu.addAction(fit_action)
+        
+        zoom_in_action = QAction("Zoom &In", self)
+        zoom_in_action.setShortcuts(["+", "="])
+        zoom_in_action.setStatusTip("Zoom in")
+        zoom_in_action.triggered.connect(self.scene_view.zoom_in)
+        view_menu.addAction(zoom_in_action)
+        
+        zoom_out_action = QAction("Zoom &Out", self)
+        zoom_out_action.setShortcuts(["-","_"])
+        zoom_out_action.setStatusTip("Zoom out")
+        zoom_out_action.triggered.connect(self.scene_view.zoom_out)
+        view_menu.addAction(zoom_out_action)
         
         self.resize(800, 600)
 
@@ -135,6 +147,14 @@ class View(QGraphicsView):
                 self.fit_all_in_view()
         super().keyPressEvent(event)
 
+    def zoom_in(self):
+        pos = self._get_viewport_center()
+        self._zoom(1 + self.key_zoom_increment, pos)
+        
+    def zoom_out(self):
+        pos = self._get_viewport_center()
+        self._zoom(1 - self.key_zoom_increment, pos)
+        
     def _zoom(self, factor, pos=None):
         if pos is not None:
             orig_scene_pos = self.mapToScene(pos)
