@@ -1,11 +1,11 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
-from qtpy.QtCore import QPoint, QRect, QRectF, QSize, Qt
-from qtpy.QtGui import QPainter
+from qtpy.QtCore import QBuffer, QMimeData, QPoint, QRect, QRectF, QSize, Qt
+from qtpy.QtGui import QClipboard, QImage, QPainter
 from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import (
     QAction, QBoxLayout, QFileDialog, QGraphicsScene, QGraphicsView, QMenu,
-    QWidget)
+    QWidget, qApp)
 
 class Window(QWidget):
     def __init__(self, item):
@@ -57,6 +57,26 @@ class Window(QWidget):
         export_svg_action.triggered.connect(
             lambda: export_as_svg(self.scene))
         export_menu.addAction(export_svg_action)
+
+        export_png_action = QAction("Export &PNG...", self)
+        export_png_action.setStatusTip("Export the current tab as an PNG file")
+        export_png_action.triggered.connect(
+            lambda: export_as_png(self.scene))
+        export_menu.addAction(export_png_action)
+
+        export_svg_clip_action = QAction("Export SVG to Clipboard", self)
+        export_svg_clip_action.setStatusTip(
+            "Export the current tab to the cliboard in SVG format")
+        export_svg_clip_action.triggered.connect(
+            lambda: export_svg_to_clipboard(self.scene))
+        export_menu.addAction(export_svg_clip_action)
+
+        export_image_clip_action = QAction("Export PNG to &Clipboard", self)
+        export_image_clip_action.setStatusTip(
+            "Export the current tab to the cliboard in PNG format")
+        export_image_clip_action.triggered.connect(
+            lambda: export_image_to_clipboard(self.scene))
+        export_menu.addAction(export_image_clip_action)
 
         self.resize(800, 600)
 
@@ -234,3 +254,50 @@ def export_as_svg(scene, file_name=None):
     painter.begin(svg_gen)
     scene.render(painter)
     painter.end()
+
+def export_svg_to_clipboard(scene):
+    print(f"exporting SVG to clipboard")
+
+    buffer = QBuffer()
+    svg_gen = QSvgGenerator()
+    svg_gen.setOutputDevice(buffer)
+    svg_gen.setSize(QSize(scene.width(), scene.height()))
+    svg_gen.setViewBox(QRect(0, 0, scene.width(), scene.height()))
+    svg_gen.setTitle("Hierarchic Component Drawing")
+    svg_gen.setDescription("A Hierarchic Component Drawing created by "
+                          "Hildegard.")
+    
+    painter = QPainter()
+    painter.begin(svg_gen)
+    painter.setRenderHint(QPainter.Antialiasing)
+    scene.render(painter)
+    painter.end()
+    data = QMimeData()
+    data.setData("image/svg+xml", buffer.buffer())
+    qApp.clipboard().setMimeData(data, QClipboard.Clipboard)
+
+def export_as_png(scene, file_name=None):
+    if file_name is None:
+        file_name, selected_filter = QFileDialog.getSaveFileName(
+            None, caption="Export to PNG",
+            filter="PNG Files (*.png)")
+        if not file_name:
+            return
+    
+    print(f"exporting PNG to file: {file_name}")
+    image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
+    image.fill(Qt.transparent)
+    painter = QPainter(image)
+    scene.render(painter)
+    painter.end()
+    image.save(file_name)
+    qApp.clipboard().setImage(image, QClipboard.Clipboard)
+
+def export_image_to_clipboard(scene):
+    print(f"exporting PNG to clipboard")
+    image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
+    image.fill(Qt.transparent)
+    painter = QPainter(image)
+    scene.render(painter)
+    painter.end()
+    qApp.clipboard().setImage(image, QClipboard.Clipboard)
