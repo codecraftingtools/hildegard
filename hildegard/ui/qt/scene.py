@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Jeffrey A. Webb
 
 from qtpy.QtCore import QBuffer, QMimeData, QPoint, QRect, QRectF, QSize, Qt
-from qtpy.QtGui import QClipboard, QImage, QPainter
+from qtpy.QtGui import QClipboard, QIcon, QImage, QPainter
 from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import (
     QAction, QBoxLayout, QFileDialog, QGraphicsScene, QGraphicsView, QMenu,
@@ -15,6 +15,7 @@ class Window(QWidget):
         self._shown = False
         self.scene_item = item
         self.menus = []
+        self.tools = []
         
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
 
@@ -37,15 +38,19 @@ class Window(QWidget):
         
         fit_action = QAction("&Fit", self)
         fit_action.setShortcut("0")
+        fit_action.setIcon(QIcon.fromTheme("zoom-fit-best"))
         fit_action.setStatusTip("Fit the entire scene to the viewport")
         fit_action.triggered.connect(self.scene_view.fit_all_in_view)
         view_menu.addAction(fit_action)
+        self.tools.append(fit_action)
         
         reset_action = QAction("&Reset (1:1)", self)
         reset_action.setShortcut("9")
+        reset_action.setIcon(QIcon.fromTheme("zoom-original"))
         reset_action.setStatusTip("Reset the view to 100% scale")
         reset_action.triggered.connect(self.scene_view.reset_scale)
         view_menu.addAction(reset_action)
+        self.tools.append(reset_action)
         
         zoom_in_action = QAction("Zoom &In", self)
         zoom_in_action.setShortcuts(["+", "="])

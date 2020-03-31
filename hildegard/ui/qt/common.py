@@ -6,6 +6,7 @@ from ...common import Environment
 import wumps
 
 from qtpy.QtCore import Qt
+from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (
     QAction, QApplication, QFileDialog,  QGraphicsItem, QMainWindow,
     QMessageBox, QTabWidget, qApp
@@ -19,6 +20,7 @@ class Main_Window(QMainWindow):
 
         self._env = env
         self._extra_menu_actions = []
+        self._extra_toolbar_actions = []
         
         self.update_title()
         
@@ -27,7 +29,7 @@ class Main_Window(QMainWindow):
         project_menu = main_menu.addMenu("&Project")
 
         toolbar = self.addToolBar("Top")
-        #toolbar.hide()
+        self.toolbar = toolbar
         
         new_action = QAction("&New", self)
         new_action.setShortcut("Ctrl+N")
@@ -43,8 +45,9 @@ class Main_Window(QMainWindow):
 
         save_action = QAction("&Save", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.setIcon(self.style().standardIcon(
-            self.style().SP_DialogSaveButton))
+        save_action.setIcon(QIcon.fromTheme("document-save"))
+        #save_action.setIcon(self.style().standardIcon(
+        #    self.style().SP_DialogSaveButton))
         save_action.setStatusTip("Save project")
         save_action.triggered.connect(
             lambda: env.save(self.tabs.currentWidget().view))
@@ -75,12 +78,18 @@ class Main_Window(QMainWindow):
     def _handle_switch_to_tab(self, index):
         for a in self._extra_menu_actions:
             self.main_menu.removeAction(a)
+        for t in self._extra_toolbar_actions:
+            self.toolbar.removeAction(t)
         if index >= 0:
             widget = self.tabs.widget(index)
             if hasattr(widget, "menus"):
                 for m in widget.menus:
                     a = self.main_menu.addMenu(m)
                     self._extra_menu_actions.append(a)
+            if hasattr(widget, "tools"):
+                for t in widget.tools:
+                    self.toolbar.addAction(t)
+                    self._extra_toolbar_actions.append(t)
                     
     def handle_quit(self):
         if self._env._ok_to_quit():
