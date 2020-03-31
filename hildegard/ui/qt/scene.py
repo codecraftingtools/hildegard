@@ -3,7 +3,8 @@
 from qtpy.QtCore import QPoint, QRect, QRectF, QSize, Qt
 from qtpy.QtGui import QPainter
 from qtpy.QtSvg import QSvgGenerator
-from qtpy.QtWidgets import QBoxLayout, QGraphicsScene, QGraphicsView, QWidget
+from qtpy.QtWidgets import (
+    QAction, QBoxLayout, QGraphicsScene, QGraphicsView, QMenu, QWidget)
 
 class Window(QWidget):
     def __init__(self, item):
@@ -11,6 +12,7 @@ class Window(QWidget):
         
         self._shown = False
         self.scene_item = item
+        self.menus = []
         
         layout = QBoxLayout(QBoxLayout.TopToBottom, self)
 
@@ -25,7 +27,16 @@ class Window(QWidget):
         layout.addWidget(scene_view)
 
         scene.addItem(item)
-            
+
+        view_menu = QMenu("&View")
+        self.menus.append(view_menu)
+        
+        fit_action = QAction("&Fit", self)
+        fit_action.setShortcut("f")
+        fit_action.setStatusTip("Fit the entire scene to the viewport")
+        fit_action.triggered.connect(self.scene_view.fit_all_in_view)
+        view_menu.addAction(fit_action)
+        
         self.resize(800, 600)
 
     def showEvent(self, event):

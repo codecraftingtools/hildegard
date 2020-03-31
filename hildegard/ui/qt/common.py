@@ -18,12 +18,13 @@ class Main_Window(QMainWindow):
         super().__init__()
 
         self._env = env
+        self._extra_menu_actions = []
         
         self.update_title()
         
         main_menu = self.menuBar()
+        self.main_menu = main_menu
         project_menu = main_menu.addMenu("&Project")
-        view_menu = main_menu.addMenu("&View")
         export_menu = main_menu.addMenu("&Export")
 
         toolbar = self.addToolBar("Top")
@@ -63,13 +64,6 @@ class Main_Window(QMainWindow):
         quit_action.triggered.connect(self.handle_quit)
         project_menu.addAction(quit_action)
         
-        fit_action = QAction("&Fit", self)
-        fit_action.setStatusTip("Fit the entire scene to the viewport")
-        fit_action.triggered.connect(
-            lambda: self._fit_in_view(self.tabs.currentWidget()))
-        view_menu.addAction(fit_action)
-        toolbar.addAction(fit_action)
-        
         export_svg_action = QAction("Export &SVG...", self)
         export_svg_action.setStatusTip("Export the current tab as an SVG file")
         export_svg_action.triggered.connect(
@@ -80,10 +74,21 @@ class Main_Window(QMainWindow):
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
             lambda index: env.close(self.tabs.widget(index).view, quit=True))
+        self.tabs.currentChanged.connect(self._handle_switch_to_tab)
         self.setCentralWidget(self.tabs)
         
         self.statusBar()
 
+    def _handle_switch_to_tab(self, index):
+        for a in self._extra_menu_actions:
+            self.main_menu.removeAction(a)
+        if index >= 0:
+            widget = self.tabs.widget(index)
+            if hasattr(widget, "menus"):
+                for m in widget.menus:
+                    a = self.main_menu.addMenu(m)
+                    self._extra_menu_actions.append(a)
+                    
     def handle_quit(self):
         if self._env._ok_to_quit():
             qApp.quit()
@@ -99,10 +104,6 @@ class Main_Window(QMainWindow):
             base_name = "Unsaved"
         self.setWindowTitle(f"Hildegard: {base_name}")
         
-    def _fit_in_view(self, widget_in_tab):
-        if hasattr(widget_in_tab, "scene_view"):
-            widget_in_tab.scene_view.fit_all_in_view()
-
 class GUI_Environment(Environment):
     _viewers = {
         Diagram: diagram.Diagram_Editor,
