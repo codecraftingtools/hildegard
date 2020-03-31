@@ -4,7 +4,8 @@ from qtpy.QtCore import QPoint, QRect, QRectF, QSize, Qt
 from qtpy.QtGui import QPainter
 from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import (
-    QAction, QBoxLayout, QGraphicsScene, QGraphicsView, QMenu, QWidget)
+    QAction, QBoxLayout, QFileDialog, QGraphicsScene, QGraphicsView, QMenu,
+    QWidget)
 
 class Window(QWidget):
     def __init__(self, item):
@@ -30,6 +31,8 @@ class Window(QWidget):
 
         view_menu = QMenu("&View")
         self.menus.append(view_menu)
+        export_menu = QMenu("&Export")
+        self.menus.append(export_menu)
         
         fit_action = QAction("&Fit", self)
         fit_action.setShortcut("0")
@@ -49,6 +52,12 @@ class Window(QWidget):
         zoom_out_action.triggered.connect(self.scene_view.zoom_out)
         view_menu.addAction(zoom_out_action)
         
+        export_svg_action = QAction("Export &SVG...", self)
+        export_svg_action.setStatusTip("Export the current tab as an SVG file")
+        export_svg_action.triggered.connect(
+            lambda: export_as_svg(self.scene))
+        export_menu.addAction(export_svg_action)
+
         self.resize(800, 600)
 
     def showEvent(self, event):
@@ -205,7 +214,11 @@ class View(QGraphicsView):
     
 def export_as_svg(scene, file_name=None):
     if file_name is None:
-        file_name = "out.svg"
+        file_name, selected_filter = QFileDialog.getSaveFileName(
+            None, caption="Export to SVG",
+            filter="SVG Files (*.svg)")
+        if not file_name:
+            return
     
     print(f"exporting SVG to file: {file_name}")
     

@@ -25,7 +25,6 @@ class Main_Window(QMainWindow):
         main_menu = self.menuBar()
         self.main_menu = main_menu
         project_menu = main_menu.addMenu("&Project")
-        export_menu = main_menu.addMenu("&Export")
 
         toolbar = self.addToolBar("Top")
         #toolbar.hide()
@@ -64,12 +63,6 @@ class Main_Window(QMainWindow):
         quit_action.triggered.connect(self.handle_quit)
         project_menu.addAction(quit_action)
         
-        export_svg_action = QAction("Export &SVG...", self)
-        export_svg_action.setStatusTip("Export the current tab as an SVG file")
-        export_svg_action.triggered.connect(
-            lambda: env.export(self.tabs.currentWidget().view, format="svg"))
-        export_menu.addAction(export_svg_action)
-
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
@@ -226,8 +219,4 @@ class GUI_Environment(Environment):
         if (view.widget is not None and
             format == "svg" and
             hasattr(view.widget, "scene")):
-            file_name, selected_filter = QFileDialog.getSaveFileName(
-                self._main_window, caption="Export to SVG",
-                filter="SVG Files (*.svg)")
-            if file_name:
-                scene.export_as_svg(view.widget.scene, file_name)
+            scene.export_as_svg(view.widget.scene)
