@@ -6,6 +6,7 @@ from qtpy.QtSvg import QSvgGenerator
 from qtpy.QtWidgets import (
     QAction, QBoxLayout, QFileDialog, QGraphicsScene, QGraphicsView, QMenu,
     QWidget, qApp)
+from qtpy.QtPrintSupport import QPrinter
 
 class Window(QWidget):
     def __init__(self, item):
@@ -40,6 +41,12 @@ class Window(QWidget):
         fit_action.triggered.connect(self.scene_view.fit_all_in_view)
         view_menu.addAction(fit_action)
         
+        reset_action = QAction("&Reset (1:1)", self)
+        reset_action.setShortcut("9")
+        reset_action.setStatusTip("Reset the view to 100% scale")
+        reset_action.triggered.connect(self.scene_view.reset_scale)
+        view_menu.addAction(reset_action)
+        
         zoom_in_action = QAction("Zoom &In", self)
         zoom_in_action.setShortcuts(["+", "="])
         zoom_in_action.setStatusTip("Zoom in")
@@ -52,26 +59,32 @@ class Window(QWidget):
         zoom_out_action.triggered.connect(self.scene_view.zoom_out)
         view_menu.addAction(zoom_out_action)
         
-        export_svg_action = QAction("Export &SVG...", self)
+        export_svg_action = QAction("As &SVG...", self)
         export_svg_action.setStatusTip("Export the current tab as an SVG file")
         export_svg_action.triggered.connect(
             lambda: export_as_svg(self.scene))
         export_menu.addAction(export_svg_action)
 
-        export_png_action = QAction("Export &PNG...", self)
+        export_png_action = QAction("As PN&G...", self)
         export_png_action.setStatusTip("Export the current tab as an PNG file")
         export_png_action.triggered.connect(
             lambda: export_as_png(self.scene))
         export_menu.addAction(export_png_action)
 
-        export_svg_clip_action = QAction("Export SVG to Clipboard", self)
+        export_pdf_action = QAction("As &PDF...", self)
+        export_pdf_action.setStatusTip("Export the current tab as an PDF file")
+        export_pdf_action.triggered.connect(
+            lambda: export_as_pdf(self.scene))
+        export_menu.addAction(export_pdf_action)
+
+        export_svg_clip_action = QAction("To Clipboard as SVG", self)
         export_svg_clip_action.setStatusTip(
             "Export the current tab to the cliboard in SVG format")
         export_svg_clip_action.triggered.connect(
             lambda: export_svg_to_clipboard(self.scene))
         export_menu.addAction(export_svg_clip_action)
 
-        export_image_clip_action = QAction("Export PNG to &Clipboard", self)
+        export_image_clip_action = QAction("To &Clipboard as PNG", self)
         export_image_clip_action.setStatusTip(
             "Export the current tab to the cliboard in PNG format")
         export_image_clip_action.triggered.connect(
@@ -115,6 +128,12 @@ class View(QGraphicsView):
         self.verticalScrollBar().disconnect()
         self.horizontalScrollBar().disconnect()
 
+    def reset_scale(self):
+        self.resetTransform()
+        br = self.scene().itemsBoundingRect()
+        p = self.mapToScene(0,0)
+        self.translate(p.x() - br.x(), p.y() - br.y())
+        
     def fit_all_in_view(self):
         self._expand_scene_rect()
         br = self.scene().itemsBoundingRect()
@@ -301,3 +320,21 @@ def export_image_to_clipboard(scene):
     scene.render(painter)
     painter.end()
     qApp.clipboard().setImage(image, QClipboard.Clipboard)
+
+def export_as_pdf(scene, file_name=None):
+    if file_name is None:
+        file_name, selected_filter = QFileDialog.getSaveFileName(
+            None, caption="Export to PDF",
+            filter="PNG Files (*.pdf)")
+        if not file_name:
+            return
+    
+    print(f"exporting scene to PDF: {file_name}")
+    printer = QPrinter (QPrinter.HighResolution)
+    printer.setPageSize(QPrinter.Letter)
+    printer.setOrientation(QPrinter.Landscape)
+    printer.setOutputFormat(QPrinter.PdfFormat)
+    printer.setOutputFileName(file_name)
+    painter = QPainter(printer)
+    scene.render(painter)
+    painter.end()
