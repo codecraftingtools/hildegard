@@ -13,15 +13,15 @@ class Window(QWidget):
         super().__init__()
         
         self._shown = False
-        self.scene_item = item
-        self.menus = []
-        self.tools = []
         
-        layout = QBoxLayout(QBoxLayout.TopToBottom, self)
-
         scene = QGraphicsScene()
         self.scene = scene
         
+        self.scene_item = item
+        scene.addItem(item)
+
+        layout = QBoxLayout(QBoxLayout.TopToBottom, self)
+
         scene_view = View(self)
         self.scene_view = scene_view
         scene_view.setScene(scene)
@@ -29,12 +29,13 @@ class Window(QWidget):
         scene_view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(scene_view)
 
-        scene.addItem(item)
-
+        self.menus = []
         view_menu = QMenu("&View")
         self.menus.append(view_menu)
         export_menu = QMenu("&Export")
         self.menus.append(export_menu)
+
+        self.tools = []
         
         fit_action = QAction("&Fit", self)
         fit_action.setShortcut("0")
@@ -102,10 +103,8 @@ class Window(QWidget):
 
     def showEvent(self, event):
         if not self._shown:
-            # Shift view to fit top-left corner when first shown
-            br = self.scene.itemsBoundingRect()
-            p = self.scene_view.mapToScene(0,0)
-            self.scene_view.translate(p.x() - br.x(), p.y() - br.y())
+            # Shift view to top-left corner when first shown
+            self.scene_view.reset_scale()
             self._shown = True
         
     def mousePressEvent(self, event):
@@ -135,19 +134,6 @@ class View(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)        
         self.verticalScrollBar().disconnect()
         self.horizontalScrollBar().disconnect()
-
-    def reset_scale(self):
-        self.resetTransform()
-        br = self.scene().itemsBoundingRect()
-        p = self.mapToScene(0,0)
-        self.translate(p.x() - br.x(), p.y() - br.y())
-        
-    def fit_all_in_view(self):
-        self._expand_scene_rect()
-        br = self.scene().itemsBoundingRect()
-        self.fitInView(br, Qt.KeepAspectRatio)
-        delta = self.mapToScene(self._get_viewport_center()) - br.center()
-        self.translate(delta.x(), delta.y())
 
     def resizeEvent(self,event):
         self._expand_scene_rect()
@@ -223,6 +209,20 @@ class View(QGraphicsView):
             delta = new_scene_pos - orig_scene_pos
             self.translate(delta.x(), delta.y())
         
+    def reset_scale(self):
+        # Reset to native size and shift view to top-left corner
+        self.resetTransform()
+        br = self.scene().itemsBoundingRect()
+        p = self.mapToScene(0,0)
+        self.translate(p.x() - br.x(), p.y() - br.y())
+        
+    def fit_all_in_view(self):
+        self._expand_scene_rect()
+        br = self.scene().itemsBoundingRect()
+        self.fitInView(br, Qt.KeepAspectRatio)
+        delta = self.mapToScene(self._get_viewport_center()) - br.center()
+        self.translate(delta.x(), delta.y())
+
     def _expand_scene_rect(self):
         vpc_pos = self._get_viewport_center()
         orig_vpc_scene_pos = self.mapToScene(vpc_pos)
@@ -260,28 +260,6 @@ class View(QGraphicsView):
         return QPoint(self.viewport().width() // 2,
                       self.viewport().height() // 2)
 
-def render_to_svggen(scene, svg_gen):
-    svg_gen.setSize(QSize(scene.width(), scene.height()))
-    svg_gen.setViewBox(QRect(0, 0, scene.width(), scene.height()))
-    svg_gen.setTitle("Hierarchic Component Drawing")
-    svg_gen.setDescription("A Hierarchic Component Drawing created by "
-                          "Hildegard.")
-    painter = QPainter()
-    painter.begin(svg_gen)
-    painter.setRenderHint(QPainter.Antialiasing)
-    scene.render(painter)
-    painter.end()
-    
-def export_to_clipboard_as_svg(scene):
-    print(f"exporting SVG to clipboard")
-    buffer = QBuffer()
-    svg_gen = QSvgGenerator()
-    svg_gen.setOutputDevice(buffer)
-    render_to_svggen(scene, svg_gen)
-    data = QMimeData()
-    data.setData("image/svg+xml", buffer.buffer())
-    qApp.clipboard().setMimeData(data, QClipboard.Clipboard)
-
 def export_as_svg(scene, file_name=None):
     if file_name is None:
         file_name, selected_filter = QFileDialog.getSaveFileName(
@@ -295,19 +273,28 @@ def export_as_svg(scene, file_name=None):
     svg_gen.setFileName(file_name)
     render_to_svggen(scene, svg_gen)
 
-def render_image(scene):
-    image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
-    image.fill(Qt.transparent)
-    painter = QPainter(image)
+def export_to_clipboard_as_svg(scene):
+    print(f"exporting SVG to clipboard")
+    buffer = QBuffer()
+    svg_gen = QSvgGenerator()
+    svg_gen.setOutputDevice(buffer)
+    render_to_svggen(scene, svg_gen)
+    data = QMimeData()
+    data.setData("image/svg+xml", buffer.buffer())
+    qApp.clipboard().setMimeData(data, QClipboard.Clipboard)
+
+def render_to_svggen(scene, svg_gen):
+    svg_gen.setSize(QSize(scene.width(), scene.height()))
+    svg_gen.setViewBox(QRect(0, 0, scene.width(), scene.height()))
+    svg_gen.setTitle("Hierarchic Component Drawing")
+    svg_gen.setDescription("A Hierarchic Component Drawing created by "
+                          "Hildegard.")
+    painter = QPainter()
+    painter.begin(svg_gen)
+    painter.setRenderHint(QPainter.Antialiasing)
     scene.render(painter)
     painter.end()
-    return image
-
-def export_to_clipboard_as_image(scene):
-    print(f"exporting PNG to clipboard")
-    image = render_image(scene)
-    qApp.clipboard().setImage(image, QClipboard.Clipboard)
-
+    
 def export_as_png(scene, file_name=None):
     if file_name is None:
         file_name, selected_filter = QFileDialog.getSaveFileName(
@@ -320,6 +307,19 @@ def export_as_png(scene, file_name=None):
     image = render_image(scene)
     image.save(file_name)
     qApp.clipboard().setImage(image, QClipboard.Clipboard)
+
+def export_to_clipboard_as_image(scene):
+    print(f"exporting PNG to clipboard")
+    image = render_image(scene)
+    qApp.clipboard().setImage(image, QClipboard.Clipboard)
+
+def render_image(scene):
+    image = QImage(scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
+    image.fill(Qt.transparent)
+    painter = QPainter(image)
+    scene.render(painter)
+    painter.end()
+    return image
 
 def export_as_pdf(scene, file_name=None):
     if file_name is None:
