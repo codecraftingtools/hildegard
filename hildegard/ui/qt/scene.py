@@ -8,7 +8,7 @@ from qtpy.QtWidgets import (
     QWidget, qApp)
 from qtpy.QtPrintSupport import QPrinter
 
-class Window(QWidget):
+class Item_Viewer(QWidget):
     def __init__(self, item):
         super().__init__()
         
@@ -135,10 +135,24 @@ class View(QGraphicsView):
         self.verticalScrollBar().disconnect()
         self.horizontalScrollBar().disconnect()
 
+        self.double_click_callback = None
+        self.mouse_move_callback = None
+        
     def resizeEvent(self,event):
         self._expand_scene_rect()
         super().resizeEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.double_click_callback is not None:
+                global_pos = event.globalPos()
+                view_pos = self.mapFromGlobal(global_pos)
+                scene_pos = self.mapToScene(view_pos)
+                handled = self.double_click_callback(scene_pos)
+                if handled:
+                    return
+        super().mouseDoubleClickEvent(event)
+        
     def mousePressEvent(self, event):
         if (event.button() == self.pan_button or
             event.button() == Qt.LeftButton and
@@ -162,8 +176,11 @@ class View(QGraphicsView):
             self.translate(delta_scene.x(), delta_scene.y())                
             self._last_mouse_pos = mouse_pos
         else:
-            if hasattr(self.parent(), "mouse_move"):
-                self.parent().mouse_move(event)
+            if self.mouse_move_callback is not None:
+                global_pos = event.globalPos()
+                view_pos = self.mapFromGlobal(global_pos)
+                scene_pos = self.mapToScene(view_pos)
+                self.mouse_move_callback(scene_pos)
         super().mouseMoveEvent(event)
 
     def wheelEvent(self, event):

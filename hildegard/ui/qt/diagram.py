@@ -1007,6 +1007,24 @@ class Diagram_Item(QGraphicsItem):
         self.process_avoid_updates()
         self.modified = False
 
+    def double_clicked_in_scene(self, scene_pos):
+        # Note that this block should really be associated with
+        # some component, but that is not required at this time.
+        b = diagram.Block(name="Untitled")
+        b_item = self.add_block(b, debug=False)
+        b_item.setPos(b_item.mapFromScene(scene_pos))
+        b_item.set_editing_mode(True, edit_title=True)
+        return True # Do not call mouseDoubleClickEvent, will stop editing
+    
+    def mouse_moved_in_scene(self, scene_pos):
+        diagram = self
+        if diagram.connection_in_progress_from:
+            diagram_pos = diagram.mapFromScene(scene_pos)
+            x1 = diagram.connection_in_progress_line.line().x1()
+            y1 = diagram.connection_in_progress_line.line().y1()
+            diagram.connection_in_progress_line.setLine(
+                x1, y1, diagram_pos.x(), diagram_pos.y())
+        
     def start_connecting(self, c, event):
         self.connection_in_progress_from = c
         x, y = c.get_connection_point()
@@ -1120,35 +1138,11 @@ class Diagram_Item(QGraphicsItem):
             processed_connections.append(c)
         self.process_avoid_updates()
         
-class Diagram_Editor(scene.Window):
+class Diagram_Editor(scene.Item_Viewer):
     def __init__(self, view):
         super().__init__(Diagram_Item(view))
         self.view = view
-
-    # called by scene.View
-    def mouse_move(self, event):
-        diagram = self.scene_item
-        if diagram.connection_in_progress_from:
-            global_pos = event.globalPos()
-            view_pos = self.scene_view.mapFromGlobal(global_pos)
-            scene_pos = self.scene_view.mapToScene(view_pos)
-            diagram_pos = diagram.mapFromScene(scene_pos)
-            x1 = diagram.connection_in_progress_line.line().x1()
-            y1 = diagram.connection_in_progress_line.line().y1()
-            diagram.connection_in_progress_line.setLine(
-                x1, y1, diagram_pos.x(), diagram_pos.y())
-        super().mouseMoveEvent(event)
-        
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            # Note that this block should really be associated with
-            # some component, but that is not required at this time.
-            b = diagram.Block(name="Untitled")
-            b_item = self.scene_item.add_block(b, debug=False)
-            global_pos = event.globalPos()
-            view_pos = self.scene_view.mapFromGlobal(global_pos)
-            scene_pos = self.scene_view.mapToScene(view_pos)
-            b_item.setPos(b_item.mapFromScene(scene_pos))
-            b_item.set_editing_mode(True, edit_title=True)
-            return # Do not call mousePressEvent, will lose focus
-        super().mouseDoubleClickEvent(event)
+        self.scene_view.double_click_callback = \
+            self.scene_item.double_clicked_in_scene
+        self.scene_view.mouse_move_callback = \
+            self.scene_item.mouse_moved_in_scene

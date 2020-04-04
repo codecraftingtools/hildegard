@@ -179,7 +179,7 @@ class GUI_Environment(Environment):
         if not added:
             return False
         if isinstance(view.widget, QGraphicsItem):
-            view.widget = scene.Window(view.widget)
+            view.widget = scene.Item_Viewer(view.widget)
             view.widget.view = view
         self._add_tab(view)
         if show:
