@@ -1142,7 +1142,6 @@ class Diagram_Editor(scene.Item_Viewer):
     def __init__(self, view):
         super().__init__(Diagram_Item(view))
         self.view = view
-        self.scene_view.double_click_callback = \
-            self.scene_item.double_clicked_in_scene
+        self.double_click_callback = self.scene_item.double_clicked_in_scene
         self.scene_view.mouse_move_callback = \
             self.scene_item.mouse_moved_in_scene

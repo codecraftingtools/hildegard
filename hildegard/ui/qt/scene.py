@@ -13,6 +13,7 @@ class Item_Viewer(QWidget):
         super().__init__()
         
         self._shown = False
+        self.double_click_callback = None
         
         scene = QGraphicsScene()
         self.scene = scene
@@ -114,6 +115,17 @@ class Item_Viewer(QWidget):
             self.scene_item.mouse_pressed_in(None)
         super().mousePressEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.double_click_callback is not None:
+                global_pos = event.globalPos()
+                view_pos = self.scene_view.mapFromGlobal(global_pos)
+                scene_pos = self.scene_view.mapToScene(view_pos)
+                handled = self.double_click_callback(scene_pos)
+                if handled:
+                    return
+        super().mouseDoubleClickEvent(event)
+        
 class View(QGraphicsView):
     def __init__(self, parent):
         super().__init__(parent)
@@ -135,24 +147,12 @@ class View(QGraphicsView):
         self.verticalScrollBar().disconnect()
         self.horizontalScrollBar().disconnect()
 
-        self.double_click_callback = None
         self.mouse_move_callback = None
         
     def resizeEvent(self,event):
         self._expand_scene_rect()
         super().resizeEvent(event)
 
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if self.double_click_callback is not None:
-                global_pos = event.globalPos()
-                view_pos = self.mapFromGlobal(global_pos)
-                scene_pos = self.mapToScene(view_pos)
-                handled = self.double_click_callback(scene_pos)
-                if handled:
-                    return
-        super().mouseDoubleClickEvent(event)
-        
     def mousePressEvent(self, event):
         if (event.button() == self.pan_button or
             event.button() == Qt.LeftButton and
