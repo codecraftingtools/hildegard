@@ -1007,7 +1007,7 @@ class Diagram_Item(QGraphicsItem):
         self.process_avoid_updates()
         self.modified = False
 
-    def double_clicked_in_scene(self, scene_pos):
+    def double_clicked_in_background(self, scene_pos):
         # Note that this block should really be associated with
         # some component, but that is not required at this time.
         b = diagram.Block(name="Untitled")
@@ -1142,6 +1142,3 @@ class Diagram_Editor(scene.Item_Viewer):
     def __init__(self, view):
         super().__init__(Diagram_Item(view))
         self.view = view
-        self.double_click_callback = self.scene_item.double_clicked_in_scene
-        self.scene_view.mouse_move_callback = \
-            self.scene_item.mouse_moved_in_scene

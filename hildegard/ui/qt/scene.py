@@ -13,7 +13,6 @@ class Item_Viewer(QWidget):
         super().__init__()
         
         self._shown = False
-        self.double_click_callback = None
         
         scene = QGraphicsScene()
         self.scene = scene
@@ -30,6 +29,17 @@ class Item_Viewer(QWidget):
         scene_view.setRenderHint(QPainter.Antialiasing)
         layout.addWidget(scene_view)
 
+        self.double_click_callback = None
+        self.mouse_press_callback = None
+        if hasattr(self.scene_item, "mouse_pressed_in"):
+            self.mouse_press_callback = self.scene_item.mouse_pressed_in
+        if hasattr(self.scene_item, "double_clicked_in_background"):
+            self.double_click_callback = \
+                self.scene_item.double_clicked_in_background
+        if hasattr(self.scene_item, "mouse_moved_in_scene"):
+            self.scene_view.mouse_move_callback = \
+                self.scene_item.mouse_moved_in_scene
+            
         self.menus = []
         view_menu = QMenu("&View")
         self.menus.append(view_menu)
@@ -111,8 +121,8 @@ class Item_Viewer(QWidget):
     def mousePressEvent(self, event):
         # Allow scene item to know that the mouse was pressed outside
         # of any item.
-        if hasattr(self.scene_item, "mouse_pressed_in"):
-            self.scene_item.mouse_pressed_in(None)
+        if self.mouse_press_callback is not None:
+            self.mouse_press_callback(None)
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
