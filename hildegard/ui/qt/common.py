@@ -34,13 +34,13 @@ class Main_Window(QMainWindow):
         new_action = QAction("&New", self)
         new_action.setShortcut("Ctrl+N")
         new_action.setStatusTip("Create a new empty project")
-        new_action.triggered.connect(env.new)
+        new_action.triggered.connect(lambda: env.new())
         project_menu.addAction(new_action)
 
         open_action = QAction("&Open...", self)
         open_action.setShortcut("Ctrl+O")
         open_action.setStatusTip("Open an existing project")
-        open_action.triggered.connect(env.open)
+        open_action.triggered.connect(lambda: env.open())
         project_menu.addAction(open_action)
 
         save_action = QAction("&Save", self)
@@ -49,15 +49,13 @@ class Main_Window(QMainWindow):
         #save_action.setIcon(self.style().standardIcon(
         #    self.style().SP_DialogSaveButton))
         save_action.setStatusTip("Save project")
-        save_action.triggered.connect(
-            lambda: env.save(self.tabs.currentWidget().entity))
+        save_action.triggered.connect(lambda: env.save())
         project_menu.addAction(save_action)
         toolbar.addAction(save_action)
 
         save_as_action = QAction("Save &As...", self)
         save_as_action.setStatusTip("Save project under a new name")
-        save_as_action.triggered.connect(
-            lambda: env.save_as(self.tabs.currentWidget().entity))
+        save_as_action.triggered.connect(lambda: env.save_as())
         project_menu.addAction(save_as_action)
 
         quit_action = QAction("&Quit", self)
@@ -105,7 +103,7 @@ class Main_Window(QMainWindow):
         else:
             base_name = "Unsaved"
         self.setWindowTitle(f"Hildegard: {base_name}")
-        
+
 class GUI_Environment(Environment):
     _viewers = {
         Diagram: diagram.Diagram_Editor,
@@ -209,20 +207,14 @@ class GUI_Environment(Environment):
             self._file_name = file_name
             self._main_window.update_title()
 
-    def save_as(self, entity):
+    def save_as(self):
         self._set_new_file_name()
         if self._file_name:
-            self.save(entity)
+            self.save()
             
-    def save(self, entity):
+    def save(self):
         if not self._file_name:
             self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
         return True if self._file_name else False
-    
-    def export(self, entity, format):
-        if (entity.widget is not None and
-            format == "svg" and
-            hasattr(entity.widget, "scene")):
-            scene.export_as_svg(entity.widget.scene)

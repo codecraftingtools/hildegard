@@ -93,6 +93,3 @@ class Environment:
             if not ret:
                 return False
         return True
-    
-    def export(self, entity, format):
-        pass
