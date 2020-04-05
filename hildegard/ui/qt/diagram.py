@@ -972,9 +972,9 @@ class Connection_Item(QGraphicsPathItem):
         self._update_avoid()
 
 class Diagram_Item(QGraphicsItem):
-    def __init__(self, view):
+    def __init__(self, entity):
         super().__init__()
-        self.view = view
+        self.entity = entity
         self.modified = False
         self.connection_in_progress_from = None
         self.connection_in_progress_line = None
@@ -992,7 +992,7 @@ class Diagram_Item(QGraphicsItem):
         self.pin_length = 10.0
         self._connection_items = []
         self._block_items = []
-        for i, s in enumerate(self.view.symbols):
+        for i, s in enumerate(self.entity.symbols):
             w = s.width
             h = s.height
             s_ui = self.add_block(s, debug=False)
@@ -1002,7 +1002,7 @@ class Diagram_Item(QGraphicsItem):
             r.setHeight(h)
             s_ui.setRect(r)
             s_ui._ensure_minimum_size()
-        for c in self.view.connections:
+        for c in self.entity.connections:
             self.add_connection(c)
         self.process_avoid_updates()
         self.modified = False
@@ -1071,8 +1071,8 @@ class Diagram_Item(QGraphicsItem):
         c_ui.arrow.setParentItem(self)
         self._connection_items.append(c_ui)
         self._hide_duplicate_connections()
-        if not connection in self.view.connections:
-            self.view.connections.append(connection)
+        if not connection in self.entity.connections:
+            self.entity.connections.append(connection)
         return c_ui
 
     def remove_connection(self, c_ui):
@@ -1081,21 +1081,21 @@ class Diagram_Item(QGraphicsItem):
         c_ui.setParentItem(None)
         c_ui.arrow.setParentItem(None)
         self._hide_duplicate_connections()
-        self.view.connections.remove(c_ui._connection)
+        self.entity.connections.remove(c_ui._connection)
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
         s_ui.setParentItem(self)
         self._block_items.append(s_ui)
-        if not block in self.view.symbols:
-            self.view.symbols.append(block)
+        if not block in self.entity.symbols:
+            self.entity.symbols.append(block)
         return s_ui
     
     def remove_block(self, block):
         self._block_items.remove(block)
         block.remove_all_connectors()
         block.setParentItem(None)
-        self.view.symbols.remove(block._block)
+        self.entity.symbols.remove(block._block)
         
     def mouse_pressed_in(self, source_item):
         # Allow diagram elements to know that the mouse was pressed
@@ -1139,6 +1139,6 @@ class Diagram_Item(QGraphicsItem):
         self.process_avoid_updates()
         
 class Diagram_Editor(scene.Item_Viewer):
-    def __init__(self, view):
-        super().__init__(Diagram_Item(view))
-        self.view = view
+    def __init__(self, entity):
+        super().__init__(Diagram_Item(entity))
+        self.entity = entity

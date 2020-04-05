@@ -19,7 +19,7 @@ class Environment:
     def __init__(self, source, show=True):
         self._entities = []
         self._file_name = None
-        self._open_views = []
+        self._open_entities = []
         if isinstance(source, str):
             self._open(source)
         else:
@@ -28,11 +28,11 @@ class Environment:
     def entities(self):
         return list(self._entities)
     
-    def viewing(self, view=None):
-        if view is None:
-            return True if self._open_views else False
+    def viewing(self, entity=None):
+        if entity is None:
+            return True if self._open_entities else False
         else:
-            return True if view in self._open_views else False
+            return True if entity in self._open_entities else False
     
     def execute(self):
         return 0
@@ -70,29 +70,29 @@ class Environment:
             }
         )
         
-    def view(self, view, show=True):
-        if not view in self._entities:
+    def view(self, entity, show=True):
+        if not entity in self._entities:
             print("error: tried to view external entitiy")
             return False
-        if view.widget:
+        if entity.widget:
             return False
-        if view in self._open_views:
+        if entity in self._open_entities:
             return False
-        view.widget = self._viewers[type(view)](view)
-        self._open_views.append(view)
+        entity.widget = self._viewers[type(entity)](entity)
+        self._open_entities.append(entity)
         return True
     
-    def close(self, view):
-        self._open_views.remove(view)
-        view.widget = None
+    def close(self, entity):
+        self._open_entities.remove(entity)
+        entity.widget = None
         return True
     
     def close_all(self):
-        for view in list(self._open_views):
-            ret = self.close(view)
+        for entity in list(self._open_entities):
+            ret = self.close(entity)
             if not ret:
                 return False
         return True
     
-    def export(self, view, format):
+    def export(self, entity, format):
         pass

@@ -50,14 +50,14 @@ class Main_Window(QMainWindow):
         #    self.style().SP_DialogSaveButton))
         save_action.setStatusTip("Save project")
         save_action.triggered.connect(
-            lambda: env.save(self.tabs.currentWidget().view))
+            lambda: env.save(self.tabs.currentWidget().entity))
         project_menu.addAction(save_action)
         toolbar.addAction(save_action)
 
         save_as_action = QAction("Save &As...", self)
         save_as_action.setStatusTip("Save project under a new name")
         save_as_action.triggered.connect(
-            lambda: env.save_as(self.tabs.currentWidget().view))
+            lambda: env.save_as(self.tabs.currentWidget().entity))
         project_menu.addAction(save_as_action)
 
         quit_action = QAction("&Quit", self)
@@ -69,7 +69,7 @@ class Main_Window(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(True)
         self.tabs.tabCloseRequested.connect(
-            lambda index: env.close(self.tabs.widget(index).view, quit=True))
+            lambda index: env.close(self.tabs.widget(index).entity, quit=True))
         self.tabs.currentChanged.connect(self._handle_switch_to_tab)
         self.setCentralWidget(self.tabs)
         
@@ -123,16 +123,16 @@ class GUI_Environment(Environment):
     def execute(self):
         return self._app.exec_()
 
-    def _add_tab(self, view):
-        self._main_window.tabs.addTab(view.widget, view.name)
+    def _add_tab(self, entity):
+        self._main_window.tabs.addTab(entity.widget, entity.name)
         
-    def _remove_tab(self, view):
+    def _remove_tab(self, entity):
         self._main_window.tabs.removeTab(
-            self._main_window.tabs.indexOf(view.widget))
+            self._main_window.tabs.indexOf(entity.widget))
 
-    def _ok_to_quit(self, view=None):
-        if view:
-            is_modified = view.widget.scene_item.modified
+    def _ok_to_quit(self, entity=None):
+        if entity:
+            is_modified = entity.widget.scene_item.modified
         else:
             is_modified = False
             for i in range(self._main_window.tabs.count()):
@@ -174,26 +174,26 @@ class GUI_Environment(Environment):
                 self._main_window.update_title()
                 super().open(file_name)
             
-    def view(self, view, show=True):
-        added = super().view(view, show=show)
+    def view(self, entity, show=True):
+        added = super().view(entity, show=show)
         if not added:
             return False
-        if isinstance(view.widget, QGraphicsItem):
-            view.widget = scene.Item_Viewer(view.widget)
-            view.widget.view = view
-        self._add_tab(view)
+        if isinstance(entity.widget, QGraphicsItem):
+            entity.widget = scene.Item_Viewer(entity.widget)
+            entity.widget.entity = entity
+        self._add_tab(entity)
         if show:
-            view.widget.show()
+            entity.widget.show()
         return True
     
-    def close(self, view, quit=False):
-        if not self.viewing(view):
+    def close(self, entity, quit=False):
+        if not self.viewing(entity):
             return True
-        if not self._ok_to_quit(view):
+        if not self._ok_to_quit(entity):
             return False
-        self._remove_tab(view)
-        view.widget.close()
-        ret = super().close(view)
+        self._remove_tab(entity)
+        entity.widget.close()
+        ret = super().close(entity)
         if not self.viewing() and quit:
             self._app.quit()
         return ret
@@ -212,20 +212,20 @@ class GUI_Environment(Environment):
             self._file_name = file_name
             self._main_window.update_title()
 
-    def save_as(self, view):
+    def save_as(self, entity):
         self._set_new_file_name()
         if self._file_name:
-            self.save(view)
+            self.save(entity)
             
-    def save(self, view):
+    def save(self, entity):
         if not self._file_name:
             self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
         return True if self._file_name else False
     
-    def export(self, view, format):
-        if (view.widget is not None and
+    def export(self, entity, format):
+        if (entity.widget is not None and
             format == "svg" and
-            hasattr(view.widget, "scene")):
-            scene.export_as_svg(view.widget.scene)
+            hasattr(entity.widget, "scene")):
+            scene.export_as_svg(entity.widget.scene)
