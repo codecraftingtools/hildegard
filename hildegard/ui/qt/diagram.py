@@ -1142,3 +1142,8 @@ class Diagram_Editor(scene.Item_Viewer):
     def __init__(self, entity):
         super().__init__(Diagram_Item(entity))
         self.entity = entity
+
+class Block_Editor(scene.Item_Viewer):
+    def __init__(self, entity):
+        super().__init__(Block_Item(entity))
+        self.entity = entity

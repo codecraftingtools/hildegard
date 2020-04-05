@@ -109,7 +109,7 @@ class Main_Window(QMainWindow):
 class GUI_Environment(Environment):
     _viewers = {
         Diagram: diagram.Diagram_Editor,
-        Block: diagram.Block_Item,
+        Block: diagram.Block_Editor,
     }
     
     def __init__(self, source, show=True):
@@ -178,9 +178,6 @@ class GUI_Environment(Environment):
         added = super().view(entity, show=show)
         if not added:
             return False
-        if isinstance(entity.widget, QGraphicsItem):
-            entity.widget = scene.Item_Viewer(entity.widget)
-            entity.widget.entity = entity
         self._add_tab(entity)
         if show:
             entity.widget.show()
