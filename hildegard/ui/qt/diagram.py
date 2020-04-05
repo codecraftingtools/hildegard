@@ -99,7 +99,8 @@ class Connector_Item(QGraphicsRectItem):
         if parent_item:
             self.setParentItem(parent_item)
         self._set_default_appearance()
- 
+        self.setAcceptHoverEvents(False)
+
     def _set_default_appearance(self):
         if self._debug:
             self.setPen(QPen(Qt.black))
@@ -107,6 +108,11 @@ class Connector_Item(QGraphicsRectItem):
             self.setPen(QPen(Qt.NoPen))
         self.setBrush(QBrush(Qt.NoBrush))
 
+    def setAcceptHoverEvents(self, accept):
+        if not accept:
+            self._set_default_appearance()
+        super().setAcceptHoverEvents(accept)
+        
     def focusInEvent(self, event):
         self.setPen(QPen(highlight_color,4))
         self.setBrush(QBrush(
@@ -159,6 +165,12 @@ class Connector_Item(QGraphicsRectItem):
                 self, disregard=disregard)
         super().mouseReleaseEvent(event)
 
+    def hoverEnterEvent(self, event):
+        self.setPen(QPen(highlight_color,4))
+
+    def hoverLeaveEvent(self, event):
+        self._set_default_appearance()
+        
     def get_connection_point(self):
         if self.parentItem() is None:
             return None, None
@@ -464,6 +476,13 @@ class Block_Item(QGraphicsRectItem):
         if edit_title:
             self._title.start_editing()
 
+    def set_hover_highlight_connectors(self, highlight):
+        for c in self._connectors:
+            if highlight:
+                c.setAcceptHoverEvents(True)
+            else:
+                c.setAcceptHoverEvents(False)
+        
     def _ensure_minimum_size(self):
         min_width = self._title.boundingRect().width()
         min_height = self._header_height + self._footer_height
@@ -1031,6 +1050,7 @@ class Diagram_Item(QGraphicsItem):
             y1 = diagram.connection_in_progress_line.line().y1()
             diagram.connection_in_progress_line.setLine(
                 x1, y1, diagram_pos.x(), diagram_pos.y())
+            self.connection_in_progress_from.setPen(QPen(highlight_color,4))
         
     def start_connecting(self, c, event):
         self.connection_in_progress_from = c
@@ -1045,7 +1065,8 @@ class Diagram_Item(QGraphicsItem):
         self.connection_in_progress_line.setParentItem(self)
         self.connection_in_progress_line.setPen(QPen(highlight_color,4))
         c.setPen(QPen(highlight_color,4))
-        
+        self.set_hover_highlight_connectors(True)
+
     def finish_connecting(self, c):
         start_c = self.connection_in_progress_from
         if c != start_c:
@@ -1068,6 +1089,7 @@ class Diagram_Item(QGraphicsItem):
     def _stop_connecting(self):
         start_c = self.connection_in_progress_from
         if start_c:
+            self.set_hover_highlight_connectors(False)
             start_c._set_default_appearance()
             self.connection_in_progress_from = None
             self.connection_in_progress_line.setParentItem(None)
@@ -1121,6 +1143,10 @@ class Diagram_Item(QGraphicsItem):
         # Implement pure virtual method
         return QRectF(0,0,0,0)
 
+    def set_hover_highlight_connectors(self, highlight):
+        for b in self._block_items:
+            b.set_hover_highlight_connectors(highlight)
+            
     def process_avoid_updates(self):
         for c_ui in list(self._connection_items):
             success = c_ui.update_endpoints()
