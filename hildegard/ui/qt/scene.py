@@ -140,14 +140,14 @@ class View(QGraphicsView):
     def __init__(self, parent):
         super().__init__(parent)
 
-        #self.pan_button = Qt.MiddleButton
-        self.pan_button = Qt.RightButton # for testing w/ touchpad
+        self.pan_button = Qt.MiddleButton
+        #self.pan_button = Qt.RightButton # for testing w/ touchpad
         self.pan_modifier = Qt.ControlModifier
         self.key_zoom_increment = 0.1
         self.wheel_zoom_increment = 0.1
         self.wheel_zoom_in_factor = None # Override wheel_zoom_increment
-        #self.wheel_zoom_out_factor = None # Override wheel_zoom_increment
-        self.wheel_zoom_out_factor = 0.97 # Touch pad
+        self.wheel_zoom_out_factor = None # Override wheel_zoom_increment
+        #self.wheel_zoom_out_factor = 0.97 # Touch pad
         
         self._panning = False
         self._last_mouse_pos = None
