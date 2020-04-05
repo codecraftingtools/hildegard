@@ -182,7 +182,7 @@ class Block_Item(QGraphicsRectItem):
         self._start_move_connector_row = None
         self.highlight_background_color = QColor(255,127,127,255)
         
-        super().__init__(0, 0, 120, 200)
+        super().__init__(0, 0, block.width, block.height)
         self.setBrush(QBrush(Qt.gray))
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsFocusable)
@@ -1010,7 +1010,7 @@ class Diagram_Item(QGraphicsItem):
     def double_clicked_in_background(self, scene_pos):
         # Note that this block should really be associated with
         # some component, but that is not required at this time.
-        b = diagram.Block(name="Untitled")
+        b = diagram.Block(name="Untitled", width=100, height=100)
         b_item = self.add_block(b, debug=False)
         b_item.setPos(b_item.mapFromScene(scene_pos))
         b_item.set_editing_mode(True, edit_title=True)
