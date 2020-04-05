@@ -106,8 +106,8 @@ class Handle(QGraphicsRectItem):
                 if self._anchor in ["B", "T", "R", "L"]:
                     self.setBrush(QBrush(Qt.NoBrush))
                 else:
-                    self.setBrush(QBrush(Qt.red))
-                self.setPen(QPen(Qt.red))
+                    self.setBrush(QBrush(Qt.green))
+                self.setPen(QPen(Qt.green))
             self.setFlag(self.ItemIsMovable)
         else:
             self.setBrush(QBrush(Qt.NoBrush))

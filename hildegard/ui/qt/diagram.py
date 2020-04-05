@@ -16,6 +16,8 @@ from qtpy.QtWidgets import (
 
 from math import sqrt
 
+highlight_color = QColor(0,127,0,255) # RGBA
+
 class Title(QGraphicsTextItem):
     def start_editing(self):
         self.setTextInteractionFlags(Qt.TextEditable)
@@ -106,7 +108,7 @@ class Connector_Item(QGraphicsRectItem):
         self.setBrush(QBrush(Qt.NoBrush))
 
     def focusInEvent(self, event):
-        self.setPen(QPen(Qt.red))
+        self.setPen(QPen(highlight_color,4))
         self.setBrush(QBrush(
             self.parentItem().parentItem().highlight_background_color))
         super().focusInEvent(event)
@@ -180,7 +182,7 @@ class Block_Item(QGraphicsRectItem):
         self._footer_height = self._vpad
         self._editing = False
         self._start_move_connector_row = None
-        self.highlight_background_color = QColor(255,127,127,255)
+        self.highlight_background_color = QColor(127,255,127,255) # RGBA
         
         super().__init__(0, 0, block.width, block.height)
         self.setBrush(QBrush(Qt.gray))
@@ -329,6 +331,7 @@ class Block_Item(QGraphicsRectItem):
                             ).connection_in_progress_from
                         if not start_c:
                             if self.parentItem().connect_on_double_click:
+                                self.clearFocus()
                                 self.parentItem().start_connecting(c, event)
                                 return
                 else:
@@ -426,8 +429,8 @@ class Block_Item(QGraphicsRectItem):
         self.add_new_connector_at(row, col, edit=True)
         
     def focusInEvent(self, event):
-        self.setPen(QPen(Qt.red,2))
-        self._title_rect.setPen(QPen(Qt.red,2))
+        self.setPen(QPen(highlight_color,4))
+        self._title_rect.setPen(QPen(highlight_color,4))
         super().focusInEvent(event)
         
     def focusOutEvent(self, event):
@@ -444,7 +447,7 @@ class Block_Item(QGraphicsRectItem):
         if self._editing:
             self.setFocus()
             self._title_rect.setBrush(QBrush(self.highlight_background_color))
-            self.setBrush(QBrush(QColor(255,127,127,255)))
+            self.setBrush(QBrush(self.highlight_background_color))
             self._base_zvalue = self.zValue()
             self.setZValue(self._top_zvalue)
             for c in self._connectors:
@@ -798,11 +801,15 @@ class Connection_Item(QGraphicsPathItem):
         self.setPen(QPen(Qt.black,2))
         self.arrow.setPen(QPen(Qt.black))
         self.arrow.setBrush(QBrush(Qt.black))
+        self._arrow_height = 8
+        self.update_from_avoid_router() # trigger arrow size change
         
     def focusInEvent(self, event):
-        self.setPen(QPen(Qt.red,2))
-        self.arrow.setPen(QPen(Qt.red))
-        self.arrow.setBrush(QBrush(Qt.red))
+        self.setPen(QPen(highlight_color,4))
+        self.arrow.setPen(QPen(highlight_color))
+        self.arrow.setBrush(QBrush(highlight_color))
+        self._arrow_height = 12
+        self.update_from_avoid_router() # trigger arrow size change
         super().focusInEvent(event)
         
     def focusOutEvent(self, event):
@@ -949,7 +956,7 @@ class Connection_Item(QGraphicsPathItem):
             p = self.mapToParent(
                 self.mapFromScene(sink.parentItem().mapToScene(x, y)))
             xc, yc = p.x(), p.y()
-            arrow_h = 8
+            arrow_h = self._arrow_height
             arrow_y = arrow_h/2.0
             arrow_x = sqrt(arrow_h*arrow_h - arrow_y*arrow_y)
             poly = QPolygonF()
@@ -1036,7 +1043,8 @@ class Diagram_Item(QGraphicsItem):
         self.connection_in_progress_line = QGraphicsLineItem(
             x1, y1, p2.x(), p2.y())
         self.connection_in_progress_line.setParentItem(self)
-        c._title.setDefaultTextColor(Qt.red)
+        self.connection_in_progress_line.setPen(QPen(highlight_color,4))
+        c.setPen(QPen(highlight_color,4))
         
     def finish_connecting(self, c):
         start_c = self.connection_in_progress_from
@@ -1060,7 +1068,7 @@ class Diagram_Item(QGraphicsItem):
     def _stop_connecting(self):
         start_c = self.connection_in_progress_from
         if start_c:
-            start_c._title.setDefaultTextColor(Qt.black)
+            start_c._set_default_appearance()
             self.connection_in_progress_from = None
             self.connection_in_progress_line.setParentItem(None)
             self.connection_in_progress_line = None
