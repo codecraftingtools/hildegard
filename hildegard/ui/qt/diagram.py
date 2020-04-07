@@ -186,7 +186,7 @@ class Block_Item(QGraphicsRectItem):
     def __init__(self, block, debug=False):
         self._block = block
         self._debug = debug
-        self.modified = False
+        self.modified_callback = None
         
         self._base_zvalue = None
         self._top_zvalue = 1
@@ -271,7 +271,6 @@ class Block_Item(QGraphicsRectItem):
         self._ensure_minimum_size()
         self._set_default_appearance()
         self.set_editing_mode(self._editing)
-        self.modified = False
 
     def handle_connector_start_move(self, connector):
         self._start_move_connector_row = connector._connector.row
@@ -482,7 +481,11 @@ class Block_Item(QGraphicsRectItem):
                 c.setAcceptHoverEvents(True)
             else:
                 c.setAcceptHoverEvents(False)
-        
+
+    def set_modified(self, subitem=None):
+        if self.modified_callback:
+            self.modified_callback(self)
+                    
     def _ensure_minimum_size(self):
         min_width = self._title.boundingRect().width()
         min_height = self._header_height + self._footer_height
@@ -673,7 +676,7 @@ class Block_Item(QGraphicsRectItem):
         self._update_geometry()
 
     def _update_avoid(self):
-        self.modified = True
+        self.set_modified()
         if self.parentItem():
             avoid_router = self.parentItem().avoid_router
             r = self.rect()
@@ -1001,7 +1004,7 @@ class Diagram_Item(QGraphicsItem):
     def __init__(self, entity):
         super().__init__()
         self.entity = entity
-        self.modified = False
+        self.modified_callback = None
         self.connection_in_progress_from = None
         self.connection_in_progress_line = None
         self.connect_on_double_click = True
@@ -1031,7 +1034,6 @@ class Diagram_Item(QGraphicsItem):
         for c in self.entity.connections:
             self.add_connection(c)
         self.process_avoid_updates()
-        self.modified = False
 
     def double_clicked_in_background(self, scene_pos):
         # Note that this block should really be associated with
@@ -1115,6 +1117,7 @@ class Diagram_Item(QGraphicsItem):
 
     def add_block(self, block, debug=False):
         s_ui = Block_Item(block, debug=debug)
+        s_ui.modified_callback = self.set_modified
         s_ui.setParentItem(self)
         self._block_items.append(s_ui)
         if not block in self.entity.symbols:
@@ -1147,6 +1150,10 @@ class Diagram_Item(QGraphicsItem):
         for b in self._block_items:
             b.set_hover_highlight_connectors(highlight)
             
+    def set_modified(self, subitem=None):
+        if self.modified_callback:
+            self.modified_callback(self)
+                    
     def process_avoid_updates(self):
         for c_ui in list(self._connection_items):
             success = c_ui.update_endpoints()
@@ -1155,7 +1162,7 @@ class Diagram_Item(QGraphicsItem):
         self.avoid_router.processTransaction()
         for c_ui in self._connection_items:
             c_ui.update_from_avoid_router()
-        self.modified = True
+        self.set_modified()
 
     def _hide_duplicate_connections(self):
         processed_connections = []
@@ -1173,11 +1180,17 @@ class Diagram_Item(QGraphicsItem):
         self.process_avoid_updates()
         
 class Diagram_Editor(scene.Item_Viewer):
-    def __init__(self, entity):
-        super().__init__(Diagram_Item(entity))
+    def __init__(self, entity, env):
+        d = Diagram_Item(entity)
+        d.modified_callback = self.set_modified
+        super().__init__(d)
+        self.modified_callback = env.set_modified
         self.entity = entity
 
 class Block_Editor(scene.Item_Viewer):
-    def __init__(self, entity):
-        super().__init__(Block_Item(entity))
+    def __init__(self, entity, env):
+        b = Block_Item(entity)
+        b.modified_callback = self.set_modified
+        super().__init__(b)
+        self.modified_callback = env.set_modified
         self.entity = entity

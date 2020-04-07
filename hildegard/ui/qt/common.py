@@ -102,8 +102,19 @@ class Main_Window(QMainWindow):
             base_name = os.path.basename(self._env._file_name)
         else:
             base_name = "Unsaved"
-        self.setWindowTitle(f"Hildegard: {base_name}")
+        modified_str = ""
+        if self._env.modified:
+            modified_str = "*"
+        self.setWindowTitle(f"Hildegard: {base_name}{modified_str}")
 
+    def update_tab_title(self, index):
+        modified_str = ""
+        widget = self.tabs.widget(index)
+        if widget in self._env.modified_widgets:
+            modified_str = "*"
+        self.tabs.setTabText(
+            index, f"{widget.entity.name}{modified_str}")
+        
 class GUI_Environment(Environment):
     _viewers = {
         Diagram: diagram.Diagram_Editor,
@@ -112,6 +123,8 @@ class GUI_Environment(Environment):
     
     def __init__(self, source, show=True):
         super().__init__(source, show=show)
+        self.modified = False
+        self.modified_widgets = set()
         self._app = QApplication([])
         self._app.setAttribute(Qt.AA_DontShowIconsInMenus, True)
         self._main_window = Main_Window(self)
@@ -123,21 +136,34 @@ class GUI_Environment(Environment):
 
     def _add_tab(self, entity):
         self._main_window.tabs.addTab(entity.widget, entity.name)
+        self._main_window.update_tab_title(
+            self._main_window.tabs.indexOf(entity.widget))
         
     def _remove_tab(self, entity):
         self._main_window.tabs.removeTab(
             self._main_window.tabs.indexOf(entity.widget))
 
-    def _ok_to_quit(self, entity=None):
-        if entity:
-            is_modified = entity.widget.scene_item.modified
-        else:
-            is_modified = False
-            for i in range(self._main_window.tabs.count()):
-                if self._main_window.tabs.widget(i).scene_item.modified:
-                    is_modified = True
-                    break
-        if is_modified:
+    def _ok_to_close(self, entity):
+        if entity.widget in self.modified_widgets:
+            mb = QMessageBox()
+            mb.setText("The tab contents may have been modified.")
+            mb.setInformativeText("Do you want to save your changes?")
+            mb.setStandardButtons(
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            mb.setDefaultButton(QMessageBox.Save)
+            ans = mb.exec()
+            if ans == QMessageBox.Cancel:
+                return False
+            elif ans == QMessageBox.Save:
+                saved = self.save()
+                if not saved:
+                    return False
+        return True
+        
+    def _ok_to_quit(self):
+        if not hasattr(self, "_main_window"):
+            return True
+        if self.modified:
             mb = QMessageBox()
             mb.setText("The project may have been modified.")
             mb.setInformativeText("Do you want to save your changes?")
@@ -148,26 +174,32 @@ class GUI_Environment(Environment):
             if ans == QMessageBox.Cancel:
                 return False
             elif ans == QMessageBox.Save:
-                saved = self.save(None)
+                saved = self.save()
                 if not saved:
                     return False
         return True
 
     def new(self):
+        if not self._ok_to_quit():
+            return
+        self.clear_modified()
         ret = self.close_all()
         if not ret:
             return
         super().new()
         
     def open(self, file_name=None):
-        ret = self.close_all()
-        if not ret:
+        if not self._ok_to_quit():
             return
         if not file_name:
             file_name, selected_filter = QFileDialog.getOpenFileName(
                 self._main_window, caption="Open File",
                 filter="Hildegard Project Files (*.hpy)")
             if file_name:
+                self.clear_modified()
+                ret = self.close_all()
+                if not ret:
+                    return
                 self._file_name = file_name
                 self._main_window.update_title()
                 super().open(file_name)
@@ -184,7 +216,7 @@ class GUI_Environment(Environment):
     def close(self, entity, quit=False):
         if not self.viewing(entity):
             return True
-        if not self._ok_to_quit(entity):
+        if not self._ok_to_close(entity):
             return False
         self._remove_tab(entity)
         entity.widget.close()
@@ -217,4 +249,28 @@ class GUI_Environment(Environment):
             self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
+            self.clear_modified()
         return True if self._file_name else False
+        
+    def set_modified(self, subitem=None):
+        if subitem is not None:
+            self.modified_widgets.add(subitem)
+            try:
+                i = self._main_window.tabs.indexOf(subitem)
+                self._main_window.update_tab_title(i)
+            except:
+                pass
+        self.modified = True
+        self._main_window.update_title()
+        
+    def clear_modified(self):
+        self.modified = False
+        self._main_window.update_title()
+        widgets_to_update = self.modified_widgets
+        self.modified_widgets = set()
+        for widget in widgets_to_update:
+            try:
+                i = self._main_window.tabs.indexOf(widget)
+                self._main_window.update_tab_title(i)
+            except:
+                pass

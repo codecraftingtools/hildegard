@@ -78,7 +78,7 @@ class Environment:
             return False
         if entity in self._open_entities:
             return False
-        entity.widget = self._viewers[type(entity)](entity)
+        entity.widget = self._viewers[type(entity)](entity, self)
         self._open_entities.append(entity)
         return True
     

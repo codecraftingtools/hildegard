@@ -13,6 +13,7 @@ class Item_Viewer(QWidget):
         super().__init__()
         
         self._shown = False
+        self.modified_callback = None
         
         scene = QGraphicsScene()
         self.scene = scene
@@ -135,6 +136,10 @@ class Item_Viewer(QWidget):
                 if handled:
                     return
         super().mouseDoubleClickEvent(event)
+
+    def set_modified(self, subitem=None):
+        if self.modified_callback:
+            self.modified_callback(self)
         
 class View(QGraphicsView):
     def __init__(self, parent):
