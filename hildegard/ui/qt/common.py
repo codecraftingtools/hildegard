@@ -44,11 +44,13 @@ class Main_Window(QMainWindow):
         project_menu.addAction(open_action)
 
         save_action = QAction("&Save", self)
+        self.save_action = save_action
         save_action.setShortcut("Ctrl+S")
         save_action.setIcon(QIcon.fromTheme("document-save"))
         #save_action.setIcon(self.style().standardIcon(
         #    self.style().SP_DialogSaveButton))
         save_action.setStatusTip("Save project")
+        save_action.setEnabled(False)
         save_action.triggered.connect(lambda: env.save())
         project_menu.addAction(save_action)
         toolbar.addAction(save_action)
@@ -249,6 +251,7 @@ class GUI_Environment(Environment):
             self._set_new_file_name()
         if self._file_name:
             wumps.save(self._entities, file_name=self._file_name)
+            self._main_window.save_action.setEnabled(False)
             self.clear_modified()
         return True if self._file_name else False
         
@@ -262,6 +265,7 @@ class GUI_Environment(Environment):
                 pass
         self.modified = True
         self._main_window.update_title()
+        self._main_window.save_action.setEnabled(True)
         
     def clear_modified(self):
         self.modified = False
