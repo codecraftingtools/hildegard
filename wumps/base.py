@@ -171,11 +171,15 @@ def _find_referenced_entities(item, referenced_items):
     return referenced_items
     
 def save_to(item, level=0, file=None, found=None):
+    top = False
     if found is None:
+        top = True
         found = _find_referenced_entities(item, [])
     space = "  "
     if file is None:
         file = sys.stdout
+    if top:
+        file.write('# {format: "yaml"}')
     if isinstance(item, Entity):
         file.write(f"\n{space*level}- {item.__class__.__name__}:\n")
         if item in found:

@@ -196,7 +196,7 @@ class GUI_Environment(Environment):
         if not file_name:
             file_name, selected_filter = QFileDialog.getOpenFileName(
                 self._main_window, caption="Open File",
-                filter="Hildegard Project Files (*.hpy)")
+                filter="Hildegard Project Files (*.hp)")
             if file_name:
                 self.clear_modified()
                 ret = self.close_all()
@@ -236,7 +236,7 @@ class GUI_Environment(Environment):
     def _set_new_file_name(self):
         file_name, selected_filter = QFileDialog.getSaveFileName(
             self._main_window, caption="Save Environment",
-            filter="Hildegard Project Files (*.hpy)")
+            filter="Hildegard Project Files (*.hp)")
         if file_name:
             self._file_name = file_name
             self._main_window.update_title()
