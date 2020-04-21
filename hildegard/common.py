@@ -55,6 +55,7 @@ class Environment:
     
     def _open(self, file_name): # Not overloaded
         from hildegard import diagram
+        from pidgen import component
         ret = self.close_all()
         if not ret:
             return
@@ -67,6 +68,7 @@ class Environment:
                 "Block": diagram.Block,
                 "Connector": diagram.Connector,
                 "Connection": diagram.Connection,
+                "Port": component.Port,
             }
         )
         

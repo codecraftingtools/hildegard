@@ -8,9 +8,9 @@ class Type(Entity):
     
 class Port(Entity):
     _attributes = (
-        Attribute("type", Type),
-        Attribute("input", bool),
-        Attribute("output", bool),
+        #Attribute("type", Type),
+        #Attribute("input", bool),
+        #Attribute("output", bool),
     )
     
 class Interface(Entity):

@@ -179,7 +179,7 @@ def save_to(item, level=0, file=None, found=None):
     if file is None:
         file = sys.stdout
     if top:
-        file.write('# {format: "yaml"}')
+        file.write('# {format: "yaml", version: 0}')
     if isinstance(item, Entity):
         file.write(f"\n{space*level}- {item.__class__.__name__}:\n")
         if item in found:
@@ -190,6 +190,8 @@ def save_to(item, level=0, file=None, found=None):
             elif type(item)._attr_info[name].reference is True:
                 file.write(f"{space*(level+2)}{name}: {id(value)}\n")
             elif type(item)._attr_info[name].save is not False:
+                if isinstance(value, list) and not value:
+                    continue # Don't write out empty list items
                 file.write(f"{space*(level+2)}{name}:")
                 save_to(value, level=level+3, file=file, found=found)
     elif isinstance(item, list):

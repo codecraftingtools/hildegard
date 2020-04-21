@@ -31,6 +31,10 @@ class Connection(View):
         Attribute("subject", component.Channel, alias="channel"),
         Attribute("source", Connector, reference=True),
         Attribute("sink", Connector, reference=True),
+        Attribute("source_ports",
+                  elements(component.Port, "source_port", anonymous=True)),
+        Attribute("dest_ports",
+                  elements(component.Port, "dest_port", anonymous=True)),
     )
 
 class Diagram(View):

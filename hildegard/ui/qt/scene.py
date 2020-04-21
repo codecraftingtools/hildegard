@@ -43,6 +43,7 @@ class Item_Viewer(QWidget):
             
         self.menus = []
         view_menu = QMenu("&View")
+        self.view_menu = view_menu
         self.menus.append(view_menu)
         export_menu = QMenu("&Export")
         self.menus.append(export_menu)

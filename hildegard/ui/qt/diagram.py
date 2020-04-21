@@ -7,12 +7,12 @@ from ... import diagram
 
 import adaptagrams as avoid
 
-from qtpy.QtCore import QPointF, QRectF, Qt
+from qtpy.QtCore import QPointF, QRectF, Qt, QTimer
 from qtpy.QtGui import (
     QBrush, QColor, QPainterPath, QPainterPathStroker, QPen, QPolygonF)
 from qtpy.QtWidgets import (
-    QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem, QGraphicsPolygonItem,
-    QGraphicsRectItem, QGraphicsTextItem)
+    QAction, QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem,
+    QGraphicsPolygonItem, QGraphicsRectItem, QGraphicsTextItem)
 
 from math import sqrt
 
@@ -792,6 +792,14 @@ class Block_Item(QGraphicsRectItem):
         super().setParentItem(parent_item)
         self._update_avoid()
         
+class Connection_Ports_Item(QGraphicsRectItem):
+    def __init__(self):
+        super().__init__(0, 0, 100, 200)
+        self.setPen(QPen(Qt.lightGray,8))
+        self.setBrush(QBrush(Qt.white))
+        self.setZValue(10)
+        self.hide()
+        
 class Connection_Item(QGraphicsPathItem):
     def __init__(self, connection, parent):
         super().__init__()
@@ -811,6 +819,14 @@ class Connection_Item(QGraphicsPathItem):
         self.arrow = QGraphicsPolygonItem()
         self._set_default_appearance()
         self.setFlag(self.ItemIsFocusable)
+        self._ports_item = Connection_Ports_Item()
+        self._ports_item.setParentItem(self)
+        self._timer = QTimer(self.scene())
+        self._timer.setSingleShot(True)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._start_hover)
+        self._hover_pos = 0, 0
+        self.set_show_connection_ports_on_hover(False)
 
     def shape(self):
         return self.stroker_path
@@ -878,6 +894,37 @@ class Connection_Item(QGraphicsPathItem):
             self._switch_direction()
             return # Do not call mousePressEvent, will pass on to diagram
         super().mouseDoubleClickEvent(event)
+        
+    def set_show_connection_ports_on_hover(self, show):
+        if not show:
+            self._ports_item.hide()
+        self.setAcceptHoverEvents(show)
+            
+    def hoverEnterEvent(self, event):
+        w = self._ports_item.rect().width()
+        h = self._ports_item.rect().height()
+        x = event.pos().x() - w/2.0
+        y = event.pos().y() - h/2.0
+        self._hover_pos = x, y
+        self._timer.start(200)
+        
+    def hoverLeaveEvent(self, event):
+        self._stop_hover()
+
+    def _start_hover(self):
+        if self.hasFocus():
+            return
+        print("start hover", [a.name for a in self._connection.source_ports])
+        x, y = self._hover_pos
+        self._ports_item.setX(x)
+        self._ports_item.setY(y)
+        self.setZValue(10)
+        self._ports_item.show()
+
+    def _stop_hover(self):
+        self._timer.stop()
+        self._ports_item.hide()
+        self.setZValue(-10)
         
     def _find_ui(self, parent, c):
         result = None
@@ -1149,6 +1196,10 @@ class Diagram_Item(QGraphicsItem):
     def set_hover_highlight_connectors(self, highlight):
         for b in self._block_items:
             b.set_hover_highlight_connectors(highlight)
+
+    def set_show_connection_ports_on_hover(self, show):
+        for c_ui in list(self._connection_items):
+            c_ui.set_show_connection_ports_on_hover(show)
             
     def set_modified(self, subitem=None):
         if self.modified_callback:
@@ -1187,6 +1238,19 @@ class Diagram_Editor(scene.Item_Viewer):
         self.modified_callback = env.set_modified
         self.entity = entity
 
+        show_ports_action = QAction("Connection Ports", self)
+        self._show_ports_action = show_ports_action
+        show_ports_action.setStatusTip("Show connection ports when hovering")
+        show_ports_action.setCheckable(True)
+        show_ports_action.setChecked(False)
+        show_ports_action.triggered.connect(
+            lambda x: d.set_show_connection_ports_on_hover(x))
+        self.view_menu.addAction(show_ports_action)
+
+    def show(self):
+        checked = self._show_ports_action.isChecked()
+        self.scene_item.set_show_connection_ports_on_hover(checked)
+        
 class Block_Editor(scene.Item_Viewer):
     def __init__(self, entity, env):
         b = Block_Item(entity)
