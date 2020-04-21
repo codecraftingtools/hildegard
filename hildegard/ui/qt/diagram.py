@@ -9,7 +9,7 @@ import adaptagrams as avoid
 
 from qtpy.QtCore import QPointF, QRectF, Qt, QTimer
 from qtpy.QtGui import (
-    QBrush, QColor, QPainterPath, QPainterPathStroker, QPen, QPolygonF)
+    QBrush, QColor, QIcon, QPainterPath, QPainterPathStroker, QPen, QPolygonF)
 from qtpy.QtWidgets import (
     QAction, QGraphicsItem, QGraphicsLineItem, QGraphicsPathItem,
     QGraphicsPolygonItem, QGraphicsRectItem, QGraphicsTextItem)
@@ -1243,9 +1243,11 @@ class Diagram_Editor(scene.Item_Viewer):
         show_ports_action.setStatusTip("Show connection ports when hovering")
         show_ports_action.setCheckable(True)
         show_ports_action.setChecked(False)
+        show_ports_action.setIcon(QIcon.fromTheme("edit-find"))
         show_ports_action.triggered.connect(
             lambda x: d.set_show_connection_ports_on_hover(x))
         self.view_menu.addAction(show_ports_action)
+        self.tools.append(show_ports_action)
 
     def show(self):
         checked = self._show_ports_action.isChecked()
