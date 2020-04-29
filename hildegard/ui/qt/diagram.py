@@ -804,8 +804,8 @@ class Connection_Item(QGraphicsPathItem):
     def __init__(self, connection, parent):
         super().__init__()
         self._connection = connection
-        self._source_ui = self._find_ui(parent, connection.source)
-        self._sink_ui = self._find_ui(parent, connection.sink)
+        self._source_ui = self._find_ui(parent, connection.source.connector)
+        self._sink_ui = self._find_ui(parent, connection.sink.connector)
         self.avoid_conn = None
         self._duplicate_is = None
         self._duplicate_of = None
@@ -873,9 +873,9 @@ class Connection_Item(QGraphicsPathItem):
             self._connection.sink = self._connection.source
             self._connection.source = sink
             self._source_ui = self._find_ui(
-                self.parentItem(), self._connection.source)
+                self.parentItem(), self._connection.source.connector)
             self._sink_ui = self._find_ui(
-                self.parentItem(), self._connection.sink)
+                self.parentItem(), self._connection.sink.connector)
             self._switch_direction_count += 1
         else:
             conn = diagram.Connection(
@@ -914,7 +914,7 @@ class Connection_Item(QGraphicsPathItem):
     def _start_hover(self):
         if self.hasFocus():
             return
-        print("start hover", [a.name for a in self._connection.source_ports])
+        #print("start hover", [a.name for a in self._connection.source_ports])
         x, y = self._hover_pos
         self._ports_item.setX(x)
         self._ports_item.setY(y)
@@ -1119,9 +1119,13 @@ class Diagram_Item(QGraphicsItem):
     def finish_connecting(self, c):
         start_c = self.connection_in_progress_from
         if c != start_c:
+            source_ep = diagram.Endpoint(
+                connector=start_c._connector)
+            sink_ep = diagram.Endpoint(
+                connector=c._connector)
             conn = diagram.Connection(
-                source=start_c._connector,
-                sink=c._connector,
+                source=source_ep,
+                sink=sink_ep,
             )
             self._stop_connecting()
             self.add_connection(conn)

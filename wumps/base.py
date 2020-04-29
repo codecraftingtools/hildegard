@@ -124,9 +124,21 @@ class Entity(metaclass=Entity_Type):
                 a.type is not None else None)
         for key, value in kw.items():
             a = self._attr_info[key]
+            is_entity = False
+            if isinstance(value, Entity):
+                is_entity = True
+            elif isinstance(value, list) and value:
+                if isinstance(value[0], Entity):
+                    if not issubclass(a.type, list):
+                        if not issubclass(a.type, OrderedDict):
+                            is_entity = True
             if (a.type is not None and
-                not isinstance(value, Entity)): # no Entity copy constructor yet
+                not is_entity): # no Entity copy constructor yet
                 value = a.type(value)
+            elif (not issubclass(a.type, list) and
+                  not issubclass(a.type, OrderedDict) and
+                  isinstance(value, list) and value):
+                value = value[0]
             self._attrs[a.name] = value
 
     def __getitem__(self, key):
@@ -179,7 +191,7 @@ def save_to(item, level=0, file=None, found=None):
     if file is None:
         file = sys.stdout
     if top:
-        file.write('# {format: "yaml", version: 0}')
+        file.write('# {format: "yaml", major_version: 0, minor_version: 1}')
     if isinstance(item, Entity):
         file.write(f"\n{space*level}- {item.__class__.__name__}:\n")
         if item in found:

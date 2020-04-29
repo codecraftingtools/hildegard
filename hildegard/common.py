@@ -68,6 +68,7 @@ class Environment:
                 "Block": diagram.Block,
                 "Connector": diagram.Connector,
                 "Connection": diagram.Connection,
+                "Endpoint": diagram.Endpoint,
                 "Port": component.Port,
             }
         )
