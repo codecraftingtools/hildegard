@@ -22,9 +22,9 @@ Installation Notes
 ==================
 
 Hildegard is written in `Python 3`_, and requires the `libavoid`_ and
-`qtpy`_ Python packages to operate.  Please set up a `virtual Python
-environment`_ and then follow the installation instructions for each
-of these prerequisite packages.
+`qtpy`_ Python packages to operate.  Please set up a virtual Python
+environment using `virtualenvwrapper`_ and then follow the
+installation instructions for each of these prerequisite packages.
 
 The current implementation also requires the `PyYAML`_ Python package,
 which can be installed like this::
@@ -54,7 +54,7 @@ be executed like this::
 .. _Python 3: https://www.codecraftsmen.org/foundation.html#python
 .. _libavoid: https://www.codecraftsmen.org/foundation.html#libavoid
 .. _qtpy: https://www.codecraftsmen.org/foundation.html#qt
-.. _virtual Python environment:
+.. _virtualenvwrapper:
       https://www.codecraftsmen.org/foundation.html#virtualenvwrapper
 .. _PyYAML: https://pyyaml.org
 .. _Git: https://www.codecraftsmen.org/foundation.html#git
