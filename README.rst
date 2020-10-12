@@ -2,10 +2,10 @@
 Hildegard
 =========
 
-The Hildegard program is a hierarchic layout and design environment
-for generating applications and rendering diagrams.  This graphical
-schematic editor will eventually enable the construction of hierarchic
-software components and applications by drawing block diagrams.
+Hildegard is a hierarchic layout and design environment for generating
+applications and rendering diagrams.  This graphical schematic editor
+will eventually enable the construction of hierarchic software
+components and applications by drawing block diagrams.
 
 Hildegard is part of the `Code Craftsmen`_ project.  The latest
 `documentation`_ and `source code`_ can be found on `GitHub`_.
