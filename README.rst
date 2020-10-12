@@ -48,13 +48,13 @@ be executed like this::
 .. _documentation:
       https://github.com/codecraftingtools/hildegard/blob/master/README.rst
 .. _source code: https://github.com/codecraftingtools/hildegard
-.. _GitHub: https://www.codecraftsmen.org/foundation.html#GitHub
+.. _GitHub: https://www.codecraftsmen.org/foundation.html#github
 .. _YAML-based: https://yaml.org
-.. _Wumps-based: https://www.codecraftsmen.org/software.html#Wumps
-.. _Python 3: https://www.codecraftsmen.org/foundation.html#Python
+.. _Wumps-based: https://www.codecraftsmen.org/software.html#wumps
+.. _Python 3: https://www.codecraftsmen.org/foundation.html#python
 .. _libavoid: https://www.codecraftsmen.org/foundation.html#libavoid
-.. _qtpy: https://www.codecraftsmen.org/foundation.html#Qt
+.. _qtpy: https://www.codecraftsmen.org/foundation.html#qt
 .. _virtual Python environment:
       https://www.codecraftsmen.org/foundation.html#virtualenvwrapper
 .. _PyYAML: https://pyyaml.org
-.. _Git: https://www.codecraftsmen.org/foundation.html#Git
+.. _Git: https://www.codecraftsmen.org/foundation.html#git
