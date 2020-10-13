@@ -7,7 +7,7 @@ applications and rendering diagrams.  This graphical schematic editor
 will eventually enable the construction of hierarchic software
 components and applications by drawing block diagrams.
 
-Hildegard is part of the `Code Craftsmen`_ project.  The latest
+Hildegard is part of the `Code Craftsmen`_ project.  The
 `documentation`_ and `source code`_ can be found on `GitHub`_.
 
 Status
@@ -21,7 +21,7 @@ which will change to a `Wumps-based`_ format in the future.
 Installation Notes
 ==================
 
-Hildegard is written in `Python 3`_, and requires the `libavoid`_ and
+Hildegard is written in `Python 3`_ and requires the `libavoid`_ and
 `qtpy`_ Python packages to operate.  Please set up a virtual Python
 environment using `virtualenvwrapper`_ and then follow the
 installation instructions for each of these prerequisite packages.
