@@ -14,11 +14,11 @@ components and applications by drawing block diagrams.
 can be found on `GitHub`_.
 
 
-.. _Hildegard: https://www.codecraftsmen.org/software.html#hildegard
+.. _Hildegard: https://tools.codecraftsmen.org/software.html#hildegard
 .. _Code Craftsmen: https://www.codecraftsmen.org
 .. _documentation: https://hildegard.readthedocs.io
-.. _Read the Docs: https://www.codecraftsmen.org/foundation.html#read-the-docs
+.. _Read the Docs: https://tools.codecraftsmen.org/foundation.html#read-the-docs
 .. _source code: https://github.com/codecraftingtools/hildegard
-.. _GitHub: https://www.codecraftsmen.org/foundation.html#github
+.. _GitHub: https://tools.codecraftsmen.org/foundation.html#github
 
 ..  sphinx-include-summary-end
